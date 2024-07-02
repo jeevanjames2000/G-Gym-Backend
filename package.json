@@ -1,0 +1,28 @@
+{
+  "name": "GymBackend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "react-scripts test",
+    "start": "react-scripts start",
+    "build": "react-scripts build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "luxon": "^3.4.4",
+    "moment": "^2.30.1",
+    "mongodb": "^6.5.0",
+    "mongoose": "^8.3.0",
+    "qrcode": "^1.5.3",
+    "react-scripts": "^5.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}
