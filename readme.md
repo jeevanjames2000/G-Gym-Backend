@@ -1,16 +1,16 @@
 ### GET
 
-# - http://localhost:3000/api/gym/getGymSchedulesByLocation/${location}/${date}
+# - https://g-gym-backend.onrender.com/api/gym/getGymSchedulesByLocation/${location}/${date}
 
 # (!need to send params (loaction and date) in endpoints of api getGymSchedulesByLocation/location/date)
 
-# - http://localhost:3000/api/gym/getAllMasterSchedules
+# - https://g-gym-backend.onrender.com/api/gym/getAllMasterSchedules
 
-# - http://localhost:3000/api/gym/getGymSchedule
+# - https://g-gym-backend.onrender.com/api/gym/getGymSchedule
 
 ### POST
 
-# - http://localhost:3000/api/gym/insertGymMasterScheduling
+# - https://g-gym-backend.onrender.com/api/gym/insertGymMasterScheduling
 
 # body:{
 
