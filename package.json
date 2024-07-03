@@ -1,11 +1,11 @@
 {
   "name": "gymbackend",
   "version": "1.0.0",
-  "main": "src/app.js",
+  "main": "app.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/app.js",
-    "dev": "nodemon --exec babel-node src/app.js",
+    "dev": "nodemon --exec babel-node app.js",
     "build": "babel src -d dist"
   },
   "keywords": [],
