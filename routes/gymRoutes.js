@@ -37,6 +37,6 @@ router.get(
 router.post(
   "/updateGymMasterScheduling",
   gym_master_Controller.updateGymMasterScheduling
-);
+); 
 
 module.exports = router;

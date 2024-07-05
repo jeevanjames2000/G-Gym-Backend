@@ -13,4 +13,14 @@ router.post(
   booking_slot_controller.insertGymMasterScheduling
 );
 
+router.get(
+  "/getGymSchedulesByLocationMongo/:locationId/:date",
+  booking_slot_controller.getGymSchedulesByLocationMongo
+);
+
+router.post(
+  "/insertGymMasterSchedulingMongo",
+  booking_slot_controller.insertGymMasterSchedulingMongo
+);
+
 module.exports = router;
