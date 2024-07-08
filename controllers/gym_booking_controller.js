@@ -1,5 +1,7 @@
 const sql = require("mssql");
 const Gym_Master = require("../models/gym_Master");
+const Gym_Booked_Slots = require("../models/gym_booked_slots");
+const qr = require("qrcode");
 
 const convertTime = (time) => {
   let [hours, minutes, period] = time.match(/(\d+):(\d+) (\w+)/).slice(1);
@@ -8,6 +10,17 @@ const convertTime = (time) => {
   if (period === "AM" && hours === "12") hours = "00";
   return { formattedTime: `${hours}:${minutes}:00`, originalTime };
 };
+
+const generateQRCode = async (data) => {
+  try {
+    const qrCodeDataUri = await qr.toDataURL(JSON.stringify(data));
+    return qrCodeDataUri;
+  } catch (error) {
+    console.error("Error generating QR code:", error);
+    throw new Error("Error generating QR code");
+  }
+};
+
 module.exports = {
   insertGymMasterScheduling: async function (req, res) {
     try {
@@ -176,99 +189,143 @@ module.exports = {
     }
   },
   insertGymMasterSchedulingMongo: async function (req, res) {
-    try {
-      const {
-        start_date,
-        start_time,
-        end_time,
-        end_date,
-        generated_date,
-        max_count,
-        generated_by,
-        status,
-        generated_time,
-        Access_type,
-        Location,
-        occupied,
-        campus,
-      } = req.body;
+    const {
+      regdNo,
+      start_date,
+      start_time,
+      Gym_scheduling_id,
+      end_time,
+      generated_by,
+      Access_type,
+      Location,
+      campus,
+    } = req.body;
 
-      const getGymSchedulingId = (time) => {
-        switch (time) {
-          case "6:00 AM":
-            return "V1";
-          case "7:00 AM":
-            return "V2";
-          case "8:00 AM":
-            return "V3";
-          case "3:00 PM":
-            return "V4";
-          case "4:00 PM":
-            return "V5";
-          case "5:00 PM":
-            return "V6";
-          case "6:00 PM":
-            return "V7";
-          case "7:00 PM":
-            return "V8";
-          case "8:00 PM":
-            return "V9";
-          case "12:00 PM":
-            return "V10";
-          case "2:00 PM":
-            return "V11";
-          default:
-            return null;
-        }
-      };
+    if (
+      !regdNo ||
+      !start_date ||
+      !Gym_scheduling_id ||
+      !start_time ||
+      !end_time ||
+      !generated_by ||
+      !Access_type ||
+      !Location ||
+      !campus
+    ) {
+      return res.status(400).send("Missing required fields");
+    }
+
+    try {
+      // Check if user already has active slots
+      const activeSlots = await Gym_Booked_Slots.find({
+        regdNo,
+        status: "booked",
+      });
+      if (activeSlots.length > 0) {
+        return res.status(400).send("User already has active slots.");
+      }
+
+      const currentDate = new Date(start_date);
 
       const convertTime = (time) => {
-        let [hours, minutes, period] = time.match(/(\d+):(\d+) (\w+)/).slice(1);
-        const originalTime = `${hours}:${minutes} ${period}`;
-        if (period === "PM" && hours !== "12") hours = parseInt(hours, 10) + 12;
-        if (period === "AM" && hours === "12") hours = "00";
-        return { formattedTime: `${hours}:${minutes}:00`, originalTime };
+        const [formattedTime, modifier] = time.split(" ");
+        let [hours, minutes] = formattedTime.split(":");
+        hours = parseInt(hours);
+        minutes = parseInt(minutes);
+
+        if (modifier === "PM" && hours !== 12) {
+          hours += 12;
+        } else if (modifier === "AM" && hours === 12) {
+          hours = 0;
+        }
+
+        return { formattedTime: `${hours}:${minutes}`, originalTime: time };
       };
 
       const {
         formattedTime: formattedStartTime,
         originalTime: originalStartTime,
       } = convertTime(start_time);
-
       const { formattedTime: formattedEndTime, originalTime: originalEndTime } =
         convertTime(end_time);
-      const {
-        formattedTime: formattedGeneratedTime,
-        originalTime: originalGeneratedTime,
-      } = convertTime(generated_time);
 
-      const Gym_sheduling_id = getGymSchedulingId(originalStartTime);
+      for (let i = 0; i < 31; i++) {
+        const startDate = new Date(currentDate);
+        startDate.setDate(currentDate.getDate() + i);
 
-      const newSchedule = new Gym_Master({
-        Gym_scheduling_id: Gym_sheduling_id,
-        start_date,
-        start_time: originalStartTime,
-        end_time: originalEndTime,
-        end_date,
-        generated_date,
-        max_count,
-        generated_by,
-        status,
-        generated_time: originalGeneratedTime,
-        Access_type,
-        Location,
-        occupied,
-        campus,
-      });
+        const bookingData = {
+          regdNo,
+          start_date: startDate.toISOString().split("T")[0],
+          start_time: originalStartTime,
+          end_time: originalEndTime,
+          Location,
+          campus,
+        };
 
-      await newSchedule.save();
+        const qrCode = await generateQRCode(bookingData);
 
-      res
-        .status(201)
-        .json({ message: "Gym scheduling record created successfully" });
-    } catch (err) {
-      console.error("Error inserting gym scheduling record:", err);
-      res.status(500).json({ error: "Failed to insert gym scheduling record" });
+        const booking = new Gym_Booked_Slots({
+          regdNo,
+          Gym_scheduling_id,
+          start_date: startDate,
+          start_time,
+          end_time,
+          end_date: startDate,
+          generated_date: new Date(),
+          generated_by,
+          status: "booked",
+          generated_time: new Date().toISOString(),
+          Access_type,
+          Location,
+          campus,
+          qr_code: qrCode,
+        });
+        const masterSlot = await Gym_Master.findOne({
+          Gym_scheduling_id,
+          // start_time: start_time,
+        });
+
+        if (!masterSlot) {
+          return res.status(400).send("Invalid Gym_scheduling_id or date.");
+        }
+
+        if (masterSlot.available <= 0) {
+          return res.status(400).send("No slots available.");
+        }
+
+        masterSlot.available = masterSlot.max_count - 1;
+        masterSlot.occupied = masterSlot.max_count - masterSlot.available;
+        await masterSlot.save();
+
+        await booking.save();
+      }
+
+      res.status(200).send("Slots booked successfully for the next 30 days.");
+    } catch (error) {
+      console.error("Error booking slots:", error);
+      res.status(500).send("Internal server error");
+    }
+  },
+  getGymBookingsByRegdNo: async (req, res) => {
+    const { regdNo } = req.params;
+
+    if (!regdNo) {
+      return res.status(400).send("Missing required parameter: regdNo");
+    }
+
+    try {
+      const bookings = await Gym_Booked_Slots.find({ regdNo });
+
+      if (bookings.length === 0) {
+        return res
+          .status(404)
+          .send("No bookings found for the provided regdNo");
+      }
+
+      res.status(200).json(bookings);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      res.status(500).send("Internal server error");
     }
   },
 };

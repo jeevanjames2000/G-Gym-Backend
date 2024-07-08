@@ -1,4 +1,6 @@
 const sql = require("mssql");
+const qr = require("qrcode");
+const Gym_Master = require("../models/gym_Master");
 const convertTime = (time) => {
   let [hours, minutes, period] = time.match(/(\d+):(\d+) (\w+)/).slice(1);
   const originalTime = `${hours}:${minutes} ${period}`;
@@ -6,7 +8,36 @@ const convertTime = (time) => {
   if (period === "AM" && hours === "12") hours = "00";
   return { formattedTime: `${hours}:${minutes}:00`, originalTime };
 };
+const generateQRCode = async (data) => {
+  try {
+    const qrCodeDataUri = await qr.toDataURL(JSON.stringify(data));
+    return qrCodeDataUri;
+  } catch (error) {
+    console.error("Error generating QR code:", error);
+    throw new Error("Error generating QR code");
+  }
+};
+const formatTime = (date) => {
+  return `${date.getHours().toString().padStart(2, "0")}:${date
+    .getMinutes()
+    .toString()
+    .padStart(2, "0")}`;
+};
+const formatDate = (date) => {
+  return `${date.getFullYear()}-${(date.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+};
 module.exports = {
+  getGymSchedule: async (req, res) => {
+    try {
+      const gymSchedules = await Gym_Master.find();
+      res.status(200).json(gymSchedules);
+    } catch (error) {
+      console.error("Error fetching gym schedules:", error);
+      res.status(500).json({ message: "Error fetching gym schedules" });
+    }
+  },
   getAllMasterSchedules: async function (req, res) {
     try {
       const pool = req.app.locals.sql;
@@ -47,83 +78,77 @@ module.exports = {
       res.status(500).json({ error: "Failed to fetch gym schedules" });
     }
   },
-  updateGymMasterScheduling: async function (req, res) {
+  getGymSchedulesByLocationMongo: async function (req, res) {
+    const locationId = req.params.locationId;
+    const date = new Date(req.params.date);
     try {
-      const { start_date, start_time, Location } = req.body;
-      const pool = req.app.locals.sql;
-      const getGymSchedulingId = (time) => {
-        switch (time) {
-          case "6:00 AM":
-            return "V1";
-          case "7:00 AM":
-            return "V2";
-          case "8:00 AM":
-            return "V3";
-          case "3:00 PM":
-            return "V4";
-          case "4:00 PM":
-            return "V5";
-          case "5:00 PM":
-            return "V6";
-          case "6:00 PM":
-            return "V7";
-          case "7:00 PM":
-            return "V8";
-          case "8:00 PM":
-            return "V9";
-          case "12:00 PM":
-            return "V10";
-          case "2:00 PM":
-            return "V11";
-          default:
-            return null;
-        }
-      };
-      const { originalTime: originalStartTime } = convertTime(start_time);
-      console.log("originalStartTime: ", originalStartTime);
-      const Gym_sheduling_id = getGymSchedulingId(originalStartTime);
-      console.log("Gym_sheduling_id: ", Gym_sheduling_id);
-      const { recordset } = await pool
-        .request()
-        .input("Location", sql.VarChar, Location)
-        .input("start_time", sql.VarChar, originalStartTime)
-        .input("start_date", sql.Date, start_date).query(`
-        SELECT occupied, max_count
-        FROM GYM_SCHEDULING_MASTER
-        WHERE Location = @Location
-        AND start_time = @start_time
-        AND start_date = @start_date
-      `);
-      if (recordset.length === 0) {
-        return res
-          .status(404)
-          .json({ error: "Gym scheduling record not found" });
+      const result = await Gym_Master.find({
+        Location: locationId,
+        start_date: date,
+      });
+      if (result.length === 0) {
+        return res.status(404).json({
+          message: "No gym schedules found for the specified location and date",
+        });
       }
-      const { occupied, max_count } = recordset[0];
-      const newOccupied = occupied + 1;
-      if (newOccupied > max_count) {
-        return res
-          .status(400)
-          .json({ error: "Max occupied slots reached (45)" });
-      }
-      await pool
-        .request()
-        .input("Location", sql.VarChar, Location)
-        .input("start_time", sql.VarChar, originalStartTime)
-        .input("newOccupied", sql.Int, newOccupied)
-        .input("start_date", sql.Date, start_date).query(`
-        UPDATE GYM_SCHEDULING_MASTER
-        SET occupied = @newOccupied
-        WHERE Location = @Location
-        AND start_time = @start_time
-        AND start_date = @start_date
-      `);
-      res
-        .status(200)
-        .json({ message: "Gym scheduling record updated successfully" });
+      const data = result;
+      const filteredData = data.map((item) => ({
+        start_date: item.start_date,
+        start_time: item.start_time,
+        end_time: item.end_time,
+        location: item.Location,
+        available: item.max_count - item.occupied,
+        occupied: item.occupied,
+      }));
+      res.status(200).json({ fullData: data, filteredData: filteredData });
     } catch (err) {
-      console.error("Error updating gym scheduling record:", err);
-      res.status(500).json({ error: "Failed to update gym scheduling record" });
+      console.error(
+        "Error fetching gym schedules by location ID and date:",
+        err
+      );
+      res.status(500).json({ error: "Failed to fetch gym schedules" });
+    }
+  },
+  insertGymMasterScheduling: async function (req, res) {
+    const {
+      Gym_scheduling_id,
+      start_date,
+      start_time,
+      end_time,
+      end_date,
+      max_count,
+      generated_by,
+      status,
+      Access_type,
+      Location,
+      occupied,
+      campus,
+    } = req.body;
+    try {
+      const currentDate = new Date();
+      const generated_date = formatDate(currentDate);
+      const generated_time = formatTime(currentDate);
+      const newGymScheduling = new Gym_Master({
+        Gym_scheduling_id,
+        start_date,
+        start_time,
+        end_time,
+        end_date,
+        generated_date,
+        max_count,
+        generated_by,
+        status,
+        generated_time,
+        Access_type,
+        Location,
+        occupied,
+        campus,
+      });
+      await newGymScheduling.save();
+      res.status(201).send("Gym scheduling record created successfully");
+    } catch (error) {
+      console.error("Error inserting gym scheduling record:", error);
+      res.status(500).send("Error inserting gym scheduling record");
     }
   },
 };
