@@ -81,26 +81,33 @@ module.exports = {
   getGymSchedulesByLocationMongo: async function (req, res) {
     const locationId = req.params.locationId;
     const date = new Date(req.params.date);
+
     try {
+      // Adjust the date to include schedules up to the end of the specified date
+      const endDate = new Date(date);
+      endDate.setDate(date.getDate() + 1); // Add one day to include all schedules until the end of 'date'
+
       const result = await Gym_Master.find({
         Location: locationId,
-        start_date: date,
+        start_date: { $gte: date, $lt: endDate },
       });
+
       if (result.length === 0) {
         return res.status(404).json({
           message: "No gym schedules found for the specified location and date",
         });
       }
-      const data = result;
-      const filteredData = data.map((item) => ({
-        start_date: item.start_date,
+
+      const filteredData = result.map((item) => ({
+        start_date: item.start_date.toISOString().split("T")[0], // Keep only the date portion
         start_time: item.start_time,
         end_time: item.end_time,
         location: item.Location,
         available: item.max_count - item.occupied,
         occupied: item.occupied,
       }));
-      res.status(200).json({ fullData: data, filteredData: filteredData });
+
+      res.status(200).json({ fullData: result, filteredData: filteredData });
     } catch (err) {
       console.error(
         "Error fetching gym schedules by location ID and date:",
