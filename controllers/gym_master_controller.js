@@ -122,6 +122,7 @@ module.exports = {
       status,
       Access_type,
       Location,
+      available,
       occupied,
       campus,
     } = req.body;
@@ -142,6 +143,7 @@ module.exports = {
         generated_time,
         Access_type,
         Location,
+        available,
         occupied,
         campus,
       });

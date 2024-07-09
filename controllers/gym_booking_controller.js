@@ -290,12 +290,10 @@ module.exports = {
         await booking.save();
       }
 
-      return res
-        .status(200)
-        .json({
-          status: "success",
-          message: "Slots booked successfully for the next 30 days.",
-        });
+      return res.status(200).json({
+        status: "success",
+        message: "Slots booked successfully for the next 30 days.",
+      });
     } catch (error) {
       console.error("Error booking slots:", error);
       return res
