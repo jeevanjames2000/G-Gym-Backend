@@ -170,16 +170,23 @@ module.exports = {
       }
 
       const data = result;
-      const filteredData = data.map((item) => ({
-        start_date: item.start_date,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        location: item.Location,
-        available: item.max_count - item.occupied,
-        occupied: item.occupied,
-      }));
+      console.log("data: ", data);
+      // const filteredData = data.map((item) => ({
+      //   Gym_scheduling_id: item.Gym_scheduling_id,
+      //   start_date: item.start_date,
+      //   start_time: item.start_time,
+      //   end_time: item.end_time,
+      //   location: item.Location,
+      //   available: item.max_count - item.occupied,
+      //   occupied: item.occupied,
+      //   Access_type: item.Access_type,
+      //   max_count: item.max_count,
+      //   campus: item.campus,
+      //   generated_by: item.generated_by,
+      //   generated_time: item.generated_time,
+      // }));
 
-      res.status(200).json({ fullData: data, filteredData: filteredData });
+      res.status(200).json(data);
     } catch (err) {
       console.error(
         "Error fetching gym schedules by location ID and date:",
