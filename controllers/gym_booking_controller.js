@@ -215,7 +215,9 @@ module.exports = {
       !Location ||
       !campus
     ) {
-      return res.status(400).send("Missing required fields");
+      return res
+        .status(400)
+        .json({ status: "error", message: "Missing required fields" });
     }
 
     try {
@@ -225,7 +227,9 @@ module.exports = {
         status: "booked",
       });
       if (activeSlots.length > 0) {
-        return res.status(400).send("User already has active slots.");
+        return res
+          .status(400)
+          .json({ status: "error", message: "User already has active slots." });
       }
 
       const currentDate = new Date(start_date);
@@ -282,30 +286,21 @@ module.exports = {
           campus,
           qr_code: qrCode,
         });
-        // const masterSlot = await Gym_Master.findOne({
-        //   Gym_scheduling_id,
-        //   // start_time: start_time,
-        // });
-
-        // if (!masterSlot) {
-        //   return res.status(400).send("Invalid Gym_scheduling_id or date.");
-        // }
-
-        // if (masterSlot.available <= 0) {
-        //   return res.status(400).send("No slots available.");
-        // }
-
-        // masterSlot.available = masterSlot.max_count - 1;
-        // masterSlot.occupied = masterSlot.max_count - masterSlot.available;
-        // await masterSlot.save();
 
         await booking.save();
       }
 
-      res.status(200).send("Slots booked successfully for the next 30 days.");
+      return res
+        .status(200)
+        .json({
+          status: "success",
+          message: "Slots booked successfully for the next 30 days.",
+        });
     } catch (error) {
       console.error("Error booking slots:", error);
-      res.status(500).send("Internal server error");
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal server error" });
     }
   },
   getGymBookingsByRegdNo: async (req, res) => {
