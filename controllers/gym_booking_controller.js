@@ -195,8 +195,6 @@ module.exports = {
       start_time,
       Gym_scheduling_id,
       end_time,
-      generated_by,
-      Access_type,
       Location,
       campus,
     } = req.body;
@@ -207,8 +205,6 @@ module.exports = {
       !Gym_scheduling_id ||
       !start_time ||
       !end_time ||
-      !generated_by ||
-      !Access_type ||
       !Location ||
       !campus
     ) {
@@ -272,30 +268,29 @@ module.exports = {
           end_time,
           end_date: startDate,
           generated_date: new Date(),
-          generated_by,
+          generated_by: "Cats",
           status: "booked",
           generated_time: new Date().toISOString(),
-          Access_type,
           Location,
           campus,
           qr_code: qrCode,
         });
-        const masterSlot = await Gym_Master.findOne({
-          Gym_scheduling_id,
-          // start_time: start_time,
-        });
+        // const masterSlot = await Gym_Master.findOne({
+        //   Gym_scheduling_id,
+        //   // start_time: start_time,
+        // });
 
-        if (!masterSlot) {
-          return res.status(400).send("Invalid Gym_scheduling_id or date.");
-        }
+        // if (!masterSlot) {
+        //   return res.status(400).send("Invalid Gym_scheduling_id or date.");
+        // }
 
-        if (masterSlot.available <= 0) {
-          return res.status(400).send("No slots available.");
-        }
+        // if (masterSlot.available <= 0) {
+        //   return res.status(400).send("No slots available.");
+        // }
 
-        masterSlot.available = masterSlot.max_count - 1;
-        masterSlot.occupied = masterSlot.max_count - masterSlot.available;
-        await masterSlot.save();
+        // masterSlot.available = masterSlot.max_count - 1;
+        // masterSlot.occupied = masterSlot.max_count - masterSlot.available;
+        // await masterSlot.save();
 
         await booking.save();
       }
