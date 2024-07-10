@@ -170,7 +170,7 @@ module.exports = {
       }
 
       const data = result;
-      console.log("data: ", data);
+
       // const filteredData = data.map((item) => ({
       //   Gym_scheduling_id: item.Gym_scheduling_id,
       //   start_date: item.start_date,
