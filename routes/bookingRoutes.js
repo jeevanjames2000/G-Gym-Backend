@@ -26,5 +26,9 @@ router.get(
   "/getGymBookingsByRegdNo/:regdNo",
   booking_slot_controller.getGymBookingsByRegdNo
 );
+router.delete(
+  "/deleteGymBookingsByRegdNo/:regdNo",
+  booking_slot_controller.deleteGymBookingsByRegdNo
+);
 
 module.exports = router;

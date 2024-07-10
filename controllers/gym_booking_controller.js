@@ -115,49 +115,48 @@ module.exports = {
     }
   },
 
-  getGymSchedulesByLocation: async function (req, res) {
-    const locationId = req.params.locationId;
-    const date = req.params.date;
-    try {
-      const pool = req.app.locals.sql;
-      const result = await pool
-        .request()
-        .input("Location", sql.VarChar, locationId)
-        .input("Date", sql.Date, date)
-        .query(
-          "SELECT * FROM GYM_SCHEDULING_MASTER WHERE Location = @Location AND start_date = @Date"
-        );
-      if (result.recordset.length === 0) {
-        return res.status(404).json({
-          message: "No gym schedules found for the specified location and date",
-        });
-      }
+  // getGymSchedulesByLocation: async function (req, res) {
+  //   const locationId = req.params.locationId;
+  //   const date = req.params.date;
+  //   try {
+  //     const pool = req.app.locals.sql;
+  //     const result = await pool
+  //       .request()
+  //       .input("Location", sql.VarChar, locationId)
+  //       .input("Date", sql.Date, date)
+  //       .query(
+  //         "SELECT * FROM GYM_SCHEDULING_MASTER WHERE Location = @Location AND start_date = @Date"
+  //       );
+  //     if (result.recordset.length === 0) {
+  //       return res.status(404).json({
+  //         message: "No gym schedules found for the specified location and date",
+  //       });
+  //     }
 
-      const data = result.recordset;
-      const filteredData = data.map((item) => ({
-        start_date: item.start_date,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        location: item.Location,
-        available: item.max_count - item.occupied,
-        occupied: item.occupied,
-      }));
-      res.status(200).json({ fullData: data, filteredData: filteredData });
-    } catch (err) {
-      console.error(
-        "Error fetching gym schedules by location ID and date:",
-        err
-      );
-      res.status(500).json({ error: "Failed to fetch gym schedules" });
-    }
-  },
+  //     const data = result.recordset;
+  //     const filteredData = data.map((item) => ({
+  //       start_date: item.start_date,
+  //       start_time: item.start_time,
+  //       end_time: item.end_time,
+  //       location: item.Location,
+  //       available: item.max_count - item.occupied,
+  //       occupied: item.occupied,
+  //     }));
+  //     res.status(200).json({ fullData: data, filteredData: filteredData });
+  //   } catch (err) {
+  //     console.error(
+  //       "Error fetching gym schedules by location ID and date:",
+  //       err
+  //     );
+  //     res.status(500).json({ error: "Failed to fetch gym schedules" });
+  //   }
+  // },
 
   getGymSchedulesByLocationMongo: async function (req, res) {
     const locationId = req.params.locationId;
     const date = new Date(req.params.date);
 
     try {
-      // Query to fetch the records
       const result = await Gym_Master.find({
         Location: locationId,
         start_date: date,
@@ -169,24 +168,7 @@ module.exports = {
         });
       }
 
-      const data = result;
-
-      // const filteredData = data.map((item) => ({
-      //   Gym_scheduling_id: item.Gym_scheduling_id,
-      //   start_date: item.start_date,
-      //   start_time: item.start_time,
-      //   end_time: item.end_time,
-      //   location: item.Location,
-      //   available: item.max_count - item.occupied,
-      //   occupied: item.occupied,
-      //   Access_type: item.Access_type,
-      //   max_count: item.max_count,
-      //   campus: item.campus,
-      //   generated_by: item.generated_by,
-      //   generated_time: item.generated_time,
-      // }));
-
-      res.status(200).json(data);
+      res.status(200).json(result);
     } catch (err) {
       console.error(
         "Error fetching gym schedules by location ID and date:",
@@ -320,6 +302,31 @@ module.exports = {
       res.status(200).json(bookings);
     } catch (error) {
       console.error("Error fetching bookings:", error);
+      res.status(500).send("Internal server error");
+    }
+  },
+
+  // delete api
+
+  deleteGymBookingsByRegdNo: async (req, res) => {
+    const { regdNo } = req.params;
+
+    if (!regdNo) {
+      return res.status(400).send("Missing required parameter: regdNo");
+    }
+
+    try {
+      const result = await Gym_Booked_Slots.deleteMany({ regdNo });
+
+      if (result.deletedCount === 0) {
+        return res
+          .status(404)
+          .send("No bookings found for the provided regdNo");
+      }
+
+      res.status(200).json({ message: "Bookings deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting bookings:", error);
       res.status(500).send("Internal server error");
     }
   },

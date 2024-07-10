@@ -27,17 +27,17 @@ const sqlConfig = {
     trustServerCertificate: true,
   },
 };
-sql
-  .connect(sqlConfig)
-  .then((pool) => {
-    if (pool.connected) {
-      console.log("SQL Server connected");
-    }
-    app.locals.sql = pool;
-  })
-  .catch((err) => {
-    console.error("Error connecting to SQL Server:", err.message);
-  });
+// sql
+//   .connect(sqlConfig)
+//   .then((pool) => {
+//     if (pool.connected) {
+//       console.log("SQL Server connected");
+//     }
+//     app.locals.sql = pool;
+//   })
+//   .catch((err) => {
+//     console.error("Error connecting to SQL Server:", err.message);
+//   });
 app.use(bodyParser.json());
 
 app.use("/api/gym", require("./routes/gymRoutes"));
