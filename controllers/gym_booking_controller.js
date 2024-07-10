@@ -330,4 +330,102 @@ module.exports = {
       res.status(500).send("Internal server error");
     }
   },
+
+  // update api
+
+  updateGymMasterSchedulingMongo: async function (req, res) {
+    const {
+      regdNo,
+      start_date,
+      start_time,
+      Gym_scheduling_id,
+      end_time,
+      Location,
+      campus,
+    } = req.body;
+
+    if (
+      !regdNo ||
+      !start_date ||
+      !Gym_scheduling_id ||
+      !start_time ||
+      !end_time ||
+      !Location ||
+      !campus
+    ) {
+      return res
+        .status(400)
+        .json({ status: "error", message: "Missing required fields" });
+    }
+
+    try {
+      const existingSlot = await Gym_Booked_Slots.findOne({
+        regdNo,
+        Gym_scheduling_id,
+      });
+
+      if (!existingSlot) {
+        return res
+          .status(404)
+          .json({ status: "error", message: "Slot not found" });
+      }
+
+      const currentDate = new Date(start_date);
+
+      const convertTime = (time) => {
+        const [formattedTime, modifier] = time.split(" ");
+        let [hours, minutes] = formattedTime.split(":");
+        hours = parseInt(hours);
+        minutes = parseInt(minutes);
+
+        if (modifier === "PM" && hours !== 12) {
+          hours += 12;
+        } else if (modifier === "AM" && hours === 12) {
+          hours = 0;
+        }
+
+        return { formattedTime: `${hours}:${minutes}`, originalTime: time };
+      };
+
+      const {
+        formattedTime: formattedStartTime,
+        originalTime: originalStartTime,
+      } = convertTime(start_time);
+      const { formattedTime: formattedEndTime, originalTime: originalEndTime } =
+        convertTime(end_time);
+
+      // Update the existing slot with new data
+      existingSlot.start_date = currentDate;
+      existingSlot.start_time = start_time;
+      existingSlot.end_time = end_time;
+      existingSlot.Location = Location;
+      existingSlot.campus = campus;
+      existingSlot.generated_date = new Date();
+      existingSlot.generated_time = new Date().toISOString();
+
+      const bookingData = {
+        regdNo,
+        start_date: currentDate.toISOString().split("T")[0],
+        start_time: originalStartTime,
+        end_time: originalEndTime,
+        Location,
+        campus,
+      };
+
+      const qrCode = await generateQRCode(bookingData);
+      existingSlot.qr_code = qrCode;
+
+      await existingSlot.save();
+
+      return res.status(200).json({
+        status: "success",
+        message: "Slot updated successfully.",
+      });
+    } catch (error) {
+      console.error("Error updating slot:", error);
+      return res
+        .status(500)
+        .json({ status: "error", message: "Internal server error" });
+    }
+  },
 };

@@ -31,4 +31,9 @@ router.delete(
   booking_slot_controller.deleteGymBookingsByRegdNo
 );
 
+router.put(
+  "/updateGymMasterSchedulingMongo",
+  booking_slot_controller.updateGymMasterSchedulingMongo
+);
+
 module.exports = router;
