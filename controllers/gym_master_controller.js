@@ -29,15 +29,7 @@ const formatDate = (date) => {
     .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
 };
 module.exports = {
-  getGymSchedule: async (req, res) => {
-    try {
-      const gymSchedules = await Gym_Master.find();
-      res.status(200).json(gymSchedules);
-    } catch (error) {
-      console.error("Error fetching gym schedules:", error);
-      res.status(500).json({ message: "Error fetching gym schedules" });
-    }
-  },
+  // SQL Syntax
   // getAllMasterSchedules: async function (req, res) {
   //   try {
   //     const pool = req.app.locals.sql;
@@ -78,6 +70,104 @@ module.exports = {
   //     res.status(500).json({ error: "Failed to fetch gym schedules" });
   //   }
   // },
+
+  // insertGymMasterScheduling: async function (req, res) {
+  //   const {
+  //     Gym_scheduling_id,
+  //     start_date,
+  //     start_time,
+  //     end_time,
+  //     end_date,
+  //     max_count,
+  //     generated_by,
+  //     status,
+  //     Access_type,
+  //     Location,
+  //     available,
+  //     occupied,
+  //     campus,
+  //   } = req.body;
+
+  //   try {
+  //     const currentDate = new Date();
+  //     const generated_date = formatDate(currentDate); // Assume formatDate is defined
+  //     const generated_time = formatTime(currentDate); // Assume formatTime is defined
+
+  //     const query = `
+  //           INSERT INTO Gym_Master (
+  //               Gym_scheduling_id,
+  //               start_date,
+  //               start_time,
+  //               end_time,
+  //               end_date,
+  //               generated_date,
+  //               max_count,
+  //               generated_by,
+  //               status,
+  //               generated_time,
+  //               Access_type,
+  //               Location,
+  //               available,
+  //               occupied,
+  //               campus
+  //           )
+  //           VALUES (
+  //               @Gym_scheduling_id,
+  //               @start_date,
+  //               @start_time,
+  //               @end_time,
+  //               @end_date,
+  //               @generated_date,
+  //               @max_count,
+  //               @generated_by,
+  //               @status,
+  //               @generated_time,
+  //               @Access_type,
+  //               @Location,
+  //               @available,
+  //               @occupied,
+  //               @campus
+  //           )
+  //       `;
+
+  //     await sql.query(query, {
+  //       Gym_scheduling_id,
+  //       start_date,
+  //       start_time,
+  //       end_time,
+  //       end_date,
+  //       generated_date,
+  //       max_count,
+  //       generated_by,
+  //       status,
+  //       generated_time,
+  //       Access_type,
+  //       Location,
+  //       available,
+  //       occupied,
+  //       campus,
+  //     });
+
+  //     res.status(201).send("Gym scheduling record created successfully");
+  //   } catch (error) {
+  //     console.error("Error inserting gym scheduling record:", error);
+  //     res.status(500).send("Error inserting gym scheduling record");
+  //   }
+  // },
+
+  // SQL Syntax
+
+  // MongoDBSyntax
+  getGymSchedule: async (req, res) => {
+    try {
+      const gymSchedules = await Gym_Master.find();
+      res.status(200).json(gymSchedules);
+    } catch (error) {
+      console.error("Error fetching gym schedules:", error);
+      res.status(500).json({ message: "Error fetching gym schedules" });
+    }
+  },
+
   getGymSchedulesByLocationMongo: async function (req, res) {
     const locationId = req.params.locationId;
     const date = new Date(req.params.date);
@@ -154,4 +244,5 @@ module.exports = {
       res.status(500).send("Error inserting gym scheduling record");
     }
   },
+  // MongoDBSyntax
 };
