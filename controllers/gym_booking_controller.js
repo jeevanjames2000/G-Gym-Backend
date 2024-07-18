@@ -113,7 +113,8 @@ module.exports = {
   },
   getGymSchedulesByLocationSQL: async function (req, res) {
     const locationId = req.params.locationId;
-    const date = new Date(req.params.date);
+    const date = req.params.date;
+    console.log("date: ", date);
 
     try {
       const query = `
@@ -171,11 +172,10 @@ module.exports = {
     try {
       const pool = req.app.locals.sql;
 
-      // Check for active slots
       const activeSlotsQuery = `
-      SELECT * FROM GYM_SLOT_DETAILS
-      WHERE regdNo = @regdNo AND status = 'booked'
-    `;
+            SELECT * FROM GYM_SLOT_DETAILS
+            WHERE regdNo = @regdNo AND status = 'booked'
+        `;
       const activeSlotsResult = await pool
         .request()
         .input("regdNo", sql.VarChar(50), regdNo)
@@ -188,25 +188,26 @@ module.exports = {
         });
       }
 
-      // Check available slots
       const availableSlotsQuery = `
-      SELECT * FROM GYM_SCHEDULING_MASTER
-      WHERE Gym_sheduling_id = @Gym_sheduling_id
-    `;
+            SELECT * FROM GYM_SCHEDULING_MASTER
+            WHERE Gym_sheduling_id = @Gym_sheduling_id
+        `;
       const availableSlotsResult = await pool
         .request()
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
         .query(availableSlotsQuery);
 
-      const matchingSlots = availableSlotsResult.recordset.filter((slot) => {
-        return (
-          slot.start_date.toISOString().split("T")[0] === start_date &&
-          slot.start_time === start_time
-        );
-      });
+      const availableSlot = availableSlotsResult.recordset[0];
 
-      const availableSlot = matchingSlots.find((slot) => slot.available > 0);
       if (!availableSlot) {
+        return res.status(400).json({
+          status: "error",
+          message: "Invalid Gym_sheduling_id provided.",
+        });
+      }
+
+      // Ensure there is an available slot to book
+      if (availableSlot.available <= 0) {
         return res.status(400).json({
           status: "error",
           message: "No available slots.",
@@ -224,18 +225,16 @@ module.exports = {
       };
 
       const formattedStartTime = convertTime(start_time);
-
       const formattedEndTime = convertTime(end_time);
 
       for (let i = 0; i < 31; i++) {
         const startDate = new Date(currentDate);
         startDate.setDate(currentDate.getDate() + i);
-        const formattedStartDate = startDate.toISOString().split("T")[0];
 
         const bookingData = {
           regdNo,
           Gym_sheduling_id,
-          start_date: currentDate,
+          start_date: startDate, // Use startDate directly
           start_time,
           end_time,
           Location,
@@ -245,32 +244,32 @@ module.exports = {
         const qrCode = await generateQRCode(bookingData);
 
         const bookingInsertQuery = `
-        INSERT INTO GYM_SLOT_DETAILS (
-          regdNo,
-          Gym_sheduling_id,
-          start_date,
-          start_time,
-          end_time,
-          end_date,
-          generated_date,
-          status,
-          Location,
-          campus,
-          qr_code
-        ) VALUES (
-          @regdNo,
-          @Gym_sheduling_id,
-          @start_date,
-          @start_time,
-          @end_time,
-          @end_date,
-          @generated_date,
-          @status,
-          @Location,
-          @campus,
-          @qr_code
-        )
-      `;
+                INSERT INTO GYM_SLOT_DETAILS (
+                    regdNo,
+                    Gym_sheduling_id,
+                    start_date,
+                    start_time,
+                    end_time,
+                    end_date,
+                    generated_date,
+                    status,
+                    Location,
+                    campus,
+                    qr_code
+                ) VALUES (
+                    @regdNo,
+                    @Gym_sheduling_id,
+                    @start_date,
+                    @start_time,
+                    @end_time,
+                    @end_date,
+                    @generated_date,
+                    @status,
+                    @Location,
+                    @campus,
+                    @qr_code
+                )
+            `;
 
         await pool
           .request()
@@ -288,21 +287,26 @@ module.exports = {
           .query(bookingInsertQuery);
       }
 
+      const updateQuery = `
+            UPDATE GYM_SCHEDULING_MASTER
+            SET available = available - 1, occupied = occupied + 1
+            WHERE Gym_sheduling_id = @Gym_sheduling_id
+        `;
+
       await pool
         .request()
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
-        .input("availableSlotId", sql.Int, availableSlot.id).query(`
-        UPDATE GYM_SCHEDULING_MASTER
-        SET available = available - 1, occupied = occupied + 1
-        WHERE Gym_sheduling_id = @Gym_sheduling_id AND id = @availableSlotId
-      `);
+        .query(updateQuery);
 
       return res.status(200).json({
         status: "success",
         message: "Slots booked successfully for the next 30 days.",
       });
     } catch (error) {
-      console.error("Error inserting gym scheduling record:", error);
+      console.error(
+        "Error inserting or updating gym scheduling record:",
+        error
+      );
       return res
         .status(500)
         .json({ status: "error", message: "Internal server error" });
@@ -398,11 +402,14 @@ module.exports = {
         if (matchingSlotResult.recordset.length > 0) {
           const slotId = matchingSlotResult.recordset[0]._id;
 
-          await pool.request().input("slotId", sql.Int, slotId).query(`
+          await pool
+            .request()
+            .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
+            .query(`
                 UPDATE GYM_SCHEDULING_MASTER
                 SET available = available + 1,
                     occupied = occupied - 1
-                WHERE ID = @slotId
+                WHERE Gym_sheduling_id = @Gym_sheduling_id
             `);
         }
       });
