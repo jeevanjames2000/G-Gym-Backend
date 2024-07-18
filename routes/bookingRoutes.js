@@ -4,24 +4,15 @@ const router = express.Router();
 const booking_slot_controller = require("../controllers/gym_booking_controller");
 
 // Slot Booking Routes
-// router.get(
-//   "/getGymSchedulesByLocation/:locationId/:date",
-//   booking_slot_controller.getGymSchedulesByLocation
-// );
-// router.post(
-//   "/insertGymMasterScheduling",
-//   booking_slot_controller.insertGymMasterScheduling
-// );
-
 router.get(
-  "/getGymSchedulesByLocationMongo/:locationId/:date",
-  booking_slot_controller.getGymSchedulesByLocationMongo
+  "/getGymSchedulesByLocationSQL/:locationId/:date",
+  booking_slot_controller.getGymSchedulesByLocationSQL
+);
+router.post(
+  "/insertGymMasterSchedulingSQL",
+  booking_slot_controller.insertGymMasterSchedulingSQL
 );
 
-router.post(
-  "/insertGymMasterSchedulingMongo",
-  booking_slot_controller.insertGymMasterSchedulingMongo
-);
 router.get(
   "/getGymBookingsByRegdNo/:regdNo",
   booking_slot_controller.getGymBookingsByRegdNo
@@ -29,11 +20,6 @@ router.get(
 router.delete(
   "/deleteGymBookingsByRegdNo/:regdNo",
   booking_slot_controller.deleteGymBookingsByRegdNo
-);
-
-router.put(
-  "/updateGymMasterSchedulingMongo",
-  booking_slot_controller.updateGymMasterSchedulingMongo
 );
 
 module.exports = router;

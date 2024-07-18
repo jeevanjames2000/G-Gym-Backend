@@ -1,14 +1,17 @@
+require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const sql = require("mssql");
 const app = express();
+const port = process.env.PORT;
+
 app.use(cors());
 
 // mongodb connection
 mongoose
-  .connect( 
+  .connect(
     "mongodb+srv://jtamada:a4oDDDQ5nRak03rQ@cluster0.ln5fxwi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
   )
   .then(() => console.log("MongoDB connected"))
@@ -27,21 +30,21 @@ const sqlConfig = {
     trustServerCertificate: true,
   },
 };
-// sql
-//   .connect(sqlConfig)
-//   .then((pool) => {
-//     if (pool.connected) {
-//       console.log("SQL Server connected");
-//     }
-//     app.locals.sql = pool;
-//   })
-//   .catch((err) => {
-//     console.error("Error connecting to SQL Server:", err.message);
-//   });
+sql
+  .connect(sqlConfig)
+  .then((pool) => {
+    if (pool.connected) {
+      console.log("SQL Server connected");
+    }
+    app.locals.sql = pool;
+  })
+  .catch((err) => {
+    console.error("Error connecting to SQL Server:", err.message);
+  });
 app.use(bodyParser.json());
 
 app.use("/api/gym", require("./routes/gymRoutes"));
 app.use("/slot/gym", require("./routes/bookingRoutes"));
 
-const PORT = process.env.PORT || 3000;
+const PORT = port || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

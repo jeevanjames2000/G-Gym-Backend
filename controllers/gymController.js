@@ -1,4 +1,3 @@
-const Gym = require("../models/Gym");
 const qr = require("qrcode");
 const generateQRCode = async (data) => {
   try {
