@@ -45,6 +45,7 @@ app.use(bodyParser.json());
 
 app.use("/api/gym", require("./routes/gymRoutes"));
 app.use("/slot/gym", require("./routes/bookingRoutes"));
+app.use("/auth", require("./routes/authRoutes"));
 
 const PORT = port || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

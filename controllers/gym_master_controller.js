@@ -69,7 +69,6 @@ module.exports = {
       const currentDate = new Date();
       const generated_date = formatDate(currentDate);
       const generated_time = currentDate;
-      console.log("generated_time: ", generated_time);
 
       const query = `
       INSERT INTO GYM_SCHEDULING_MASTER (
