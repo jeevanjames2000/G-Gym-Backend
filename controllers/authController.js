@@ -27,9 +27,7 @@ module.exports = {
         return res.status(401).json({ error: "Invalid registration number" });
       }
       const user = result.recordset[0];
-      console.log("user: ", user);
       const token = generateToken(user);
-      console.log("Generated token:", token);
       const updateRequest = pool.request();
       updateRequest.input("regdNo", sql.VarChar(50), regdNo);
       updateRequest.input("token", sql.NVarChar(sql.MAX), token);
@@ -38,7 +36,6 @@ module.exports = {
       );
       res.json({ token });
     } catch (err) {
-      console.error("Error during login:", err);
       res.status(500).json({ error: "An error occurred during login" });
     }
   },
@@ -61,7 +58,6 @@ module.exports = {
       );
       res.json({ message: "Logged out successfully" });
     } catch (err) {
-      console.error("Error during logout:", err);
       res.status(500).json({ error: "An error occurred during logout" });
     }
   },

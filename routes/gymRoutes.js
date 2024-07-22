@@ -12,12 +12,14 @@ router.get(
 
 router.get(
   "/getGymSchedulesByLocation/:locationId/:date",
+  authenticateJWT,
   gym_master_Controller.getGymSchedulesByLocation
 );
 
 // Master db data insert api
 router.post(
   "/insertGymMasterScheduling",
+  authenticateJWT,
   gym_master_Controller.insertGymMasterScheduling
 );
 
