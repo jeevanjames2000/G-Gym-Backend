@@ -10,14 +10,14 @@ const port = process.env.PORT;
 app.use(cors());
 
 // mongodb connection
-mongoose
-  .connect(
-    "mongodb+srv://jtamada:a4oDDDQ5nRak03rQ@cluster0.ln5fxwi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-  )
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => {
-    console.error("Error connecting to MongoDB:", err.message);
-  });
+// mongoose
+//   .connect(
+//     "mongodb+srv://jtamada:a4oDDDQ5nRak03rQ@cluster0.ln5fxwi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+//   )
+//   .then(() => console.log("MongoDB connected"))
+//   .catch((err) => {
+//     console.error("Error connecting to MongoDB:", err.message);
+//   });
 
 // sql server connections
 const sqlConfig = {
@@ -30,6 +30,17 @@ const sqlConfig = {
     trustServerCertificate: true,
   },
 };
+
+// const sqlConfig = {
+//   user: "catsuser",
+//   password: "dbaccess123!@#",
+//   server: "192.168.23.19",
+//   database: "GITAM",
+//   options: {
+//     encrypt: true,
+//     trustServerCertificate: true,
+//   },
+// };
 sql
   .connect(sqlConfig)
   .then((pool) => {

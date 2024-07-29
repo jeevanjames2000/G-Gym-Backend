@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const bcrypt = require("bcrypt");
 const sql = require("mssql");
 const generateToken = (user) => {
   const token = jwt.sign(
@@ -16,12 +15,13 @@ const verifyToken = (token) => {
 module.exports = {
   login: async (req, res) => {
     const { regdNo } = req.body;
+    console.log("regdNo: ", regdNo);
     try {
       const pool = req.app.locals.sql;
       const request = pool.request();
-      request.input("regdNo", sql.VarChar(50), regdNo);
+      request.input("regdNo", sql.Int, regdNo);
       const result = await request.query(
-        "SELECT * FROM GYM_SLOT_DETAILS WHERE regdNo = @regdNo"
+        "SELECT * FROM GYM_SCHEDULING_MASTER WHERE regdNo = @regdNo"
       );
       if (result.recordset.length === 0) {
         return res.status(401).json({ error: "Invalid registration number" });
@@ -32,10 +32,11 @@ module.exports = {
       updateRequest.input("regdNo", sql.VarChar(50), regdNo);
       updateRequest.input("token", sql.NVarChar(sql.MAX), token);
       await updateRequest.query(
-        "UPDATE GYM_SLOT_DETAILS SET token = @token WHERE regdNo = @regdNo"
+        "UPDATE GYM_SCHEDULING_MASTER SET token = @token WHERE regdNo = @regdNo"
       );
       res.json({ token });
     } catch (err) {
+      console.log("err: ", err);
       res.status(500).json({ error: "An error occurred during login" });
     }
   },
@@ -47,13 +48,11 @@ module.exports = {
       return res.status(400).json({ error: "Token is required" });
     }
     try {
-      const decoded = verifyToken(token);
-      const regdNo = decoded.username;
       const pool = req.app.locals.sql;
       const request = pool.request();
       request.input("regdNo", sql.VarChar(50), regdNo);
       await request.query(
-        "UPDATE GYM_SLOT_DETAILS SET token = NULL WHERE regdNo = @regdNo AND token = @token",
+        "UPDATE GYM_SCHEDULING_MASTER SET token = NULL WHERE regdNo = @regdNo",
         { token: sql.NVarChar(sql.MAX), token }
       );
       res.json({ message: "Logged out successfully" });

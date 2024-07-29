@@ -181,10 +181,17 @@ module.exports = {
         .input("regdNo", sql.VarChar(50), regdNo)
         .query(activeSlotsQuery);
 
-      if (activeSlotsResult.recordset.length > 0) {
+      const newSlotTimePeriod = start_time.slice(-2);
+
+      const conflictingSlot = activeSlotsResult.recordset.find((slot) => {
+        const existingSlotTimePeriod = slot.start_time.slice(-2);
+        return existingSlotTimePeriod === newSlotTimePeriod; // Check if they are in the same period (AM/PM)
+      });
+
+      if (conflictingSlot) {
         return res.status(400).json({
           status: "error",
-          message: "User already has active slots.",
+          message: "Cannot book another slot in same time zone.",
         });
       }
 
