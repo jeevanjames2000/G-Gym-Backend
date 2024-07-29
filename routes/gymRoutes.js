@@ -6,6 +6,7 @@ const authenticateJWT = require("../middleware/auth");
 
 router.get(
   "/getAllMasterSchedules",
+  authenticateJWT,
   gym_master_Controller.getAllMasterSchedules
 );
 
