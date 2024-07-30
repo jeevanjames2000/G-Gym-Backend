@@ -4,20 +4,21 @@ const sql = require("mssql");
 const authenticateJWT = async (req, res, next) => {
   const token =
     req.headers.authorization && req.headers.authorization.split(" ")[1];
-
+  const key = process.env.KEY;
+  const issuer = process.env.ISSUER;
   if (!token) {
     return res.sendStatus(401); // Unauthorized
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.decode(token);
 
     const pool = req.app.locals.sql;
     const request = pool.request();
     request.input("token", sql.NVarChar(sql.MAX), token);
 
     const result = await request.query(
-      "SELECT * FROM GYM_SCHEDULING_MASTER WHERE token = @token"
+      "SELECT * FROM GYM_SLOT_DETAILS_HISTORY WHERE token = @token"
     );
 
     if (result.recordset.length === 0) {

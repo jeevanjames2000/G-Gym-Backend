@@ -15,7 +15,7 @@ const verifyToken = (token) => {
 module.exports = {
   login: async (req, res) => {
     const { regdNo } = req.body;
-    console.log("regdNo: ", regdNo);
+
     try {
       const pool = req.app.locals.sql;
       const request = pool.request();
@@ -36,11 +36,11 @@ module.exports = {
       );
       res.json({ token });
     } catch (err) {
-      console.log("err: ", err);
       res.status(500).json({ error: "An error occurred during login" });
     }
   },
   logout: async (req, res) => {
+    const { regdno } = req.body;
     const token =
       req.headers.authorization && req.headers.authorization.split(" ")[1];
 
@@ -50,14 +50,44 @@ module.exports = {
     try {
       const pool = req.app.locals.sql;
       const request = pool.request();
-      request.input("regdNo", sql.VarChar(50), regdNo);
+      request.input("regdno", sql.VarChar(50), regdno);
       await request.query(
-        "UPDATE GYM_SCHEDULING_MASTER SET token = NULL WHERE regdNo = @regdNo",
+        "DELETE FROM GYM_SLOT_DETAILS_HISTORY WHERE regdno = @regdno",
         { token: sql.NVarChar(sql.MAX), token }
       );
       res.json({ message: "Logged out successfully" });
     } catch (err) {
       res.status(500).json({ error: "An error occurred during logout" });
+    }
+  },
+
+  storeToken: async (req, res) => {
+    const { regdno, token } = req.body;
+    try {
+      const pool = req.app.locals.sql;
+      const request = pool.request();
+      request.input("regdno", sql.VarChar(50), regdno);
+      request.input("token", sql.NVarChar(sql.MAX), token);
+
+      const updateResult = await request.query(
+        "UPDATE GYM_SLOT_DETAILS_HISTORY SET token = @token WHERE regdno = @regdno"
+      );
+
+      if (updateResult.rowsAffected[0] === 0) {
+        const insertRequest = pool.request();
+        insertRequest.input("regdno", sql.VarChar(50), regdno);
+        insertRequest.input("token", sql.NVarChar(sql.MAX), token);
+        await insertRequest.query(
+          "INSERT INTO GYM_SLOT_DETAILS_HISTORY (regdno, token) VALUES (@regdno, @token)"
+        );
+        res.json({ message: "New token inserted successfully" });
+      } else {
+        res.json({ message: "Token updated successfully" });
+      }
+    } catch (err) {
+      res
+        .status(500)
+        .json({ error: "An error occurred while processing the token" });
     }
   },
 };

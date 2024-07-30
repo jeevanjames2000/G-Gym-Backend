@@ -22,28 +22,24 @@ module.exports = {
 
   getGymSchedulesByLocation: async (req, res) => {
     const locationId = req.params.locationId;
-    const date = req.params.date;
+
     try {
       const pool = req.app.locals.sql;
       const result = await pool
         .request()
         .input("Location", sql.VarChar, locationId)
-        .input("Date", sql.Date, date)
         .query(
-          "SELECT * FROM GYM_SCHEDULING_MASTER WHERE Location = @Location AND start_date = @Date"
+          "SELECT * FROM GYM_SCHEDULING_MASTER WHERE Location = @Location"
         );
 
       if (result.recordset.length === 0) {
         return res.status(404).json({
-          message: "No gym schedules found for the specified location and date",
+          message: "No gym schedules found for the specified location",
         });
       }
       res.status(200).json(result.recordset);
     } catch (err) {
-      console.error(
-        "Error fetching gym schedules by location ID and date:",
-        err
-      );
+      console.error("Error fetching gym schedules by location ID:", err);
       res.status(500).json({ error: "Failed to fetch gym schedules" });
     }
   },
