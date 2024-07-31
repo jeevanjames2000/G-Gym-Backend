@@ -41,12 +41,6 @@ module.exports = {
   },
   logout: async (req, res) => {
     const { regdno } = req.body;
-    const token =
-      req.headers.authorization && req.headers.authorization.split(" ")[1];
-
-    if (!token) {
-      return res.status(400).json({ error: "Token is required" });
-    }
     try {
       const pool = req.app.locals.sql;
       const request = pool.request();
