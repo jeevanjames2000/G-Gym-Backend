@@ -46,8 +46,7 @@ module.exports = {
       const request = pool.request();
       request.input("regdno", sql.VarChar(50), regdno);
       await request.query(
-        "DELETE FROM GYM_SLOT_DETAILS_HISTORY WHERE regdno = @regdno",
-        { token: sql.NVarChar(sql.MAX), token }
+        "DELETE FROM GYM_SLOT_DETAILS_HISTORY WHERE regdno = @regdno"
       );
       res.json({ message: "Logged out successfully" });
     } catch (err) {
