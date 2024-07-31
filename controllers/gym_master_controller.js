@@ -29,7 +29,7 @@ module.exports = {
         .request()
         .input("Location", sql.VarChar, locationId)
         .query(
-          "SELECT * FROM GYM_SCHEDULING_MASTER WHERE Location = @Location"
+          "SELECT * FROM GYM_SCHEDULING_MASTER WHERE Location = @Location ORDER BY ID ASC"
         );
 
       if (result.recordset.length === 0) {
