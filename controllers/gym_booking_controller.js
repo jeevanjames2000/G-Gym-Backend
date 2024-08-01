@@ -363,10 +363,10 @@ module.exports = {
       const pool = req.app.locals.sql;
 
       const bookingsQuery = `
-          SELECT Gym_sheduling_id, start_date, start_time
-          FROM GYM_SLOT_DETAILS
-          WHERE regdNo = @regdNo
-      `;
+      SELECT DISTINCT Gym_sheduling_id, Location
+      FROM GYM_SLOT_DETAILS
+      WHERE regdNo = @regdNo
+    `;
       const bookingsResult = await pool
         .request()
         .input("regdNo", sql.VarChar(10), regdNo)
@@ -381,43 +381,39 @@ module.exports = {
       }
 
       const deleteQuery = `
-          DELETE FROM GYM_SLOT_DETAILS
-          WHERE regdNo = @regdNo
-      `;
+      DELETE FROM GYM_SLOT_DETAILS
+      WHERE regdNo = @regdNo
+    `;
       await pool
         .request()
         .input("regdNo", sql.VarChar(10), regdNo)
         .query(deleteQuery);
 
       const updates = bookings.map(async (booking) => {
-        const { Gym_sheduling_id, start_date, start_time } = booking;
+        const { Gym_sheduling_id, Location } = booking;
 
         const matchingSlotQuery = `
-            SELECT ID, available, occupied
-            FROM GYM_SCHEDULING_MASTER
-            WHERE Gym_sheduling_id = @Gym_sheduling_id
-            AND start_date = @start_date
-            AND start_time = @start_time
+        SELECT ID, available, occupied
+        FROM GYM_SCHEDULING_MASTER
+        WHERE Gym_sheduling_id = @Gym_sheduling_id
+        AND Location = @Location
         `;
+
         const matchingSlotResult = await pool
           .request()
           .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
-          .input("start_date", sql.Date, start_date)
-          .input("start_time", sql.VarChar(10), start_time)
+          .input("Location", sql.VarChar(20), Location)
           .query(matchingSlotQuery);
 
         if (matchingSlotResult.recordset.length > 0) {
-          const slotId = matchingSlotResult.recordset[0]._id;
-
           await pool
             .request()
             .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
-            .query(`
-                UPDATE GYM_SCHEDULING_MASTER
-                SET available = available + 1,
-                    occupied = occupied - 1
-                WHERE Gym_sheduling_id = @Gym_sheduling_id
-            `);
+            .input("Location", sql.VarChar(20), Location).query(`
+          UPDATE GYM_SCHEDULING_MASTER
+          SET available = available + 1, occupied = occupied - 1
+          WHERE ID = (SELECT ID FROM GYM_SCHEDULING_MASTER WHERE Gym_sheduling_id = @Gym_sheduling_id AND Location = @Location)
+          `);
         }
       });
 
