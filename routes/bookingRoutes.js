@@ -21,7 +21,7 @@ router.get(
   booking_slot_controller.getGymBookingsByRegdNo
 );
 router.delete(
-  "/deleteGymBookingsByRegdNo/:regdNo",
+  "/deleteGymBookingsByRegdNo",
   authenticateJWT,
   booking_slot_controller.deleteGymBookingsByRegdNo
 );

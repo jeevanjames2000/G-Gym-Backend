@@ -153,6 +153,7 @@ module.exports = {
       end_time,
       Location,
       campus,
+      masterID,
     } = req.body;
 
     if (
@@ -162,7 +163,8 @@ module.exports = {
       !start_time ||
       !end_time ||
       !Location ||
-      !campus
+      !campus ||
+      !masterID
     ) {
       return res
         .status(400)
@@ -246,6 +248,7 @@ module.exports = {
           end_time,
           Location,
           campus,
+          masterID,
         };
 
         const qrCode = await generateQRCode(bookingData);
@@ -262,6 +265,7 @@ module.exports = {
                     status,
                     Location,
                     campus,
+                    masterID,
                     qr_code
                 ) VALUES (
                     @regdNo,
@@ -274,6 +278,7 @@ module.exports = {
                     @status,
                     @Location,
                     @campus,
+                    @masterID,
                     @qr_code
                 )
             `;
@@ -291,6 +296,8 @@ module.exports = {
           .input("Location", sql.VarChar(20), Location)
           .input("campus", sql.VarChar(10), campus)
           .input("qr_code", sql.NVarChar(sql.MAX), qrCode)
+          .input("masterID", sql.VarChar(sql.MAX), masterID)
+
           .query(bookingInsertQuery);
       }
 
@@ -353,10 +360,12 @@ module.exports = {
   },
 
   deleteGymBookingsByRegdNo: async (req, res) => {
-    const { regdNo } = req.params;
+    const { regdNo, masterID } = req.body;
 
-    if (!regdNo) {
-      return res.status(400).send("Missing required parameter: regdNo");
+    if (!regdNo && !masterID) {
+      return res
+        .status(400)
+        .send("Missing required parameter: regdNo or masterID");
     }
 
     try {
@@ -365,11 +374,12 @@ module.exports = {
       const bookingsQuery = `
       SELECT DISTINCT Gym_sheduling_id, Location
       FROM GYM_SLOT_DETAILS
-      WHERE regdNo = @regdNo
+      WHERE regdNo = @regdNo AND masterID = @masterID
     `;
       const bookingsResult = await pool
         .request()
         .input("regdNo", sql.VarChar(10), regdNo)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
         .query(bookingsQuery);
 
       const bookings = bookingsResult.recordset;
@@ -377,16 +387,17 @@ module.exports = {
       if (bookings.length === 0) {
         return res
           .status(404)
-          .send("No bookings found for the provided regdNo");
+          .send("No bookings found for the provided regdNo and masterID");
       }
 
       const deleteQuery = `
       DELETE FROM GYM_SLOT_DETAILS
-      WHERE regdNo = @regdNo
+      WHERE regdNo = @regdNo AND masterID = @masterID
     `;
       await pool
         .request()
         .input("regdNo", sql.VarChar(10), regdNo)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
         .query(deleteQuery);
 
       const updates = bookings.map(async (booking) => {
@@ -395,24 +406,25 @@ module.exports = {
         const matchingSlotQuery = `
         SELECT ID, available, occupied
         FROM GYM_SCHEDULING_MASTER
-        WHERE Gym_sheduling_id = @Gym_sheduling_id
-        AND Location = @Location
-        `;
+        WHERE Gym_sheduling_id = @Gym_sheduling_id AND ID = @masterID AND Location = @Location
+      `;
 
         const matchingSlotResult = await pool
           .request()
           .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
           .input("Location", sql.VarChar(20), Location)
+          .input("masterID", sql.VarChar(sql.MAX), masterID)
           .query(matchingSlotQuery);
 
         if (matchingSlotResult.recordset.length > 0) {
           await pool
             .request()
             .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
+            .input("masterID", sql.VarChar(sql.MAX), masterID)
             .input("Location", sql.VarChar(20), Location).query(`
-          UPDATE GYM_SCHEDULING_MASTER
-          SET available = available + 1, occupied = occupied - 1
-          WHERE ID = (SELECT ID FROM GYM_SCHEDULING_MASTER WHERE Gym_sheduling_id = @Gym_sheduling_id AND Location = @Location)
+            UPDATE GYM_SCHEDULING_MASTER
+            SET available = available + 1, occupied = occupied - 1
+            WHERE Gym_sheduling_id = @Gym_sheduling_id AND ID = @masterID AND Location = @Location
           `);
         }
       });
