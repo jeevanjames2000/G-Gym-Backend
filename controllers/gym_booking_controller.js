@@ -236,24 +236,24 @@ module.exports = {
       const formattedStartTime = convertTime(start_time);
       const formattedEndTime = convertTime(end_time);
 
-      for (let i = 0; i < 31; i++) {
-        const startDate = new Date(currentDate);
-        startDate.setDate(currentDate.getDate() + i);
+      // for (let i = 0; i < 31; i++) {
+      //   const startDate = new Date(currentDate);
+      //   startDate.setDate(currentDate.getDate() + i);
 
-        const bookingData = {
-          regdNo,
-          Gym_sheduling_id,
-          start_date: startDate, // Use startDate directly
-          start_time,
-          end_time,
-          Location,
-          campus,
-          masterID,
-        };
+      const bookingData = {
+        regdNo,
+        Gym_sheduling_id,
+        start_date,
+        start_time,
+        end_time,
+        Location,
+        campus,
+        masterID,
+      };
 
-        const qrCode = await generateQRCode(bookingData);
+      const qrCode = await generateQRCode(bookingData);
 
-        const bookingInsertQuery = `
+      const bookingInsertQuery = `
                 INSERT INTO GYM_SLOT_DETAILS (
                     regdNo,
                     Gym_sheduling_id,
@@ -283,23 +283,23 @@ module.exports = {
                 )
             `;
 
-        await pool
-          .request()
-          .input("regdNo", sql.VarChar(50), regdNo)
-          .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
-          .input("start_date", sql.Date, startDate)
-          .input("start_time", sql.VarChar(10), start_time)
-          .input("end_time", sql.VarChar(10), end_time)
-          .input("end_date", sql.Date, startDate)
-          .input("generated_date", sql.Date, currentDate)
-          .input("status", sql.VarChar(15), "booked")
-          .input("Location", sql.VarChar(20), Location)
-          .input("campus", sql.VarChar(10), campus)
-          .input("qr_code", sql.NVarChar(sql.MAX), qrCode)
-          .input("masterID", sql.VarChar(sql.MAX), masterID)
+      await pool
+        .request()
+        .input("regdNo", sql.VarChar(50), regdNo)
+        .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
+        .input("start_date", sql.Date, start_date)
+        .input("start_time", sql.VarChar(10), start_time)
+        .input("end_time", sql.VarChar(10), end_time)
+        .input("end_date", sql.Date, start_date)
+        .input("generated_date", sql.Date, currentDate)
+        .input("status", sql.VarChar(15), "booked")
+        .input("Location", sql.VarChar(20), Location)
+        .input("campus", sql.VarChar(10), campus)
+        .input("qr_code", sql.NVarChar(sql.MAX), qrCode)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
 
-          .query(bookingInsertQuery);
-      }
+        .query(bookingInsertQuery);
+      // }
 
       const updateQuery = `
             UPDATE GYM_SCHEDULING_MASTER

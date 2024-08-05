@@ -11,7 +11,7 @@ router.get(
 );
 
 router.get(
-  "/getGymSchedulesByLocation/:locationId",
+  "/getGymSchedulesByLocation/:date/:locationId",
   authenticateJWT,
   gym_master_Controller.getGymSchedulesByLocation
 );
