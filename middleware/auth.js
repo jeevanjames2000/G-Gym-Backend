@@ -18,7 +18,7 @@ const authenticateJWT = async (req, res, next) => {
     request.input("token", sql.NVarChar(sql.MAX), token);
 
     const result = await request.query(
-      "SELECT * FROM GYM_SLOT_DETAILS_HISTORY WHERE token = @token"
+      "SELECT * FROM GYM_TOKEN WHERE token = @token"
     );
 
     if (result.recordset.length === 0) {

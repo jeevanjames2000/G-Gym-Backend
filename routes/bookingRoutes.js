@@ -26,4 +26,12 @@ router.delete(
   booking_slot_controller.deleteGymBookingsByRegdNo
 );
 
+// history get api route
+
+router.get(
+  "/getAllHistory",
+  authenticateJWT,
+  booking_slot_controller.getAllHistory
+);
+
 module.exports = router;

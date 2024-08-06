@@ -171,14 +171,17 @@ module.exports = {
         .json({ status: "error", message: "Missing required fields" });
     }
 
+    const pool = req.app.locals.sql;
+    const transaction = new sql.Transaction(pool);
+
     try {
-      const pool = req.app.locals.sql;
+      await transaction.begin();
 
       const activeSlotsQuery = `
-            SELECT * FROM GYM_SLOT_DETAILS
-            WHERE regdNo = @regdNo AND status = 'booked'
-        `;
-      const activeSlotsResult = await pool
+      SELECT * FROM GYM_SLOT_DETAILS
+      WHERE regdNo = @regdNo AND status = 'booked'
+    `;
+      const activeSlotsResult = await transaction
         .request()
         .input("regdNo", sql.VarChar(50), regdNo)
         .query(activeSlotsQuery);
@@ -191,6 +194,7 @@ module.exports = {
       });
 
       if (conflictingSlot) {
+        await transaction.rollback();
         return res.status(400).json({
           status: "error",
           message: "Cannot book another slot in same time zone.",
@@ -198,10 +202,10 @@ module.exports = {
       }
 
       const availableSlotsQuery = `
-            SELECT * FROM GYM_SCHEDULING_MASTER
-            WHERE Gym_sheduling_id = @Gym_sheduling_id
-        `;
-      const availableSlotsResult = await pool
+      SELECT * FROM GYM_SCHEDULING_MASTER
+      WHERE Gym_sheduling_id = @Gym_sheduling_id
+    `;
+      const availableSlotsResult = await transaction
         .request()
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
         .query(availableSlotsQuery);
@@ -209,6 +213,7 @@ module.exports = {
       const availableSlot = availableSlotsResult.recordset[0];
 
       if (!availableSlot) {
+        await transaction.rollback();
         return res.status(400).json({
           status: "error",
           message: "Invalid Gym_sheduling_id provided.",
@@ -217,6 +222,7 @@ module.exports = {
 
       // Ensure there is an available slot to book
       if (availableSlot.available <= 0) {
+        await transaction.rollback();
         return res.status(400).json({
           status: "error",
           message: "No available slots.",
@@ -236,10 +242,6 @@ module.exports = {
       const formattedStartTime = convertTime(start_time);
       const formattedEndTime = convertTime(end_time);
 
-      // for (let i = 0; i < 31; i++) {
-      //   const startDate = new Date(currentDate);
-      //   startDate.setDate(currentDate.getDate() + i);
-
       const bookingData = {
         regdNo,
         Gym_sheduling_id,
@@ -254,36 +256,36 @@ module.exports = {
       const qrCode = await generateQRCode(bookingData);
 
       const bookingInsertQuery = `
-                INSERT INTO GYM_SLOT_DETAILS (
-                    regdNo,
-                    Gym_sheduling_id,
-                    start_date,
-                    start_time,
-                    end_time,
-                    end_date,
-                    generated_date,
-                    status,
-                    Location,
-                    campus,
-                    masterID,
-                    qr_code
-                ) VALUES (
-                    @regdNo,
-                    @Gym_sheduling_id,
-                    @start_date,
-                    @start_time,
-                    @end_time,
-                    @end_date,
-                    @generated_date,
-                    @status,
-                    @Location,
-                    @campus,
-                    @masterID,
-                    @qr_code
-                )
-            `;
+      INSERT INTO GYM_SLOT_DETAILS (
+        regdNo,
+        Gym_sheduling_id,
+        start_date,
+        start_time,
+        end_time,
+        end_date,
+        generated_date,
+        status,
+        Location,
+        campus,
+        masterID,
+        qr_code
+      ) VALUES (
+        @regdNo,
+        @Gym_sheduling_id,
+        @start_date,
+        @start_time,
+        @end_time,
+        @end_date,
+        @generated_date,
+        @status,
+        @Location,
+        @campus,
+        @masterID,
+        @qr_code
+      )
+    `;
 
-      await pool
+      await transaction
         .request()
         .input("regdNo", sql.VarChar(50), regdNo)
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
@@ -297,30 +299,75 @@ module.exports = {
         .input("campus", sql.VarChar(10), campus)
         .input("qr_code", sql.NVarChar(sql.MAX), qrCode)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
-
         .query(bookingInsertQuery);
-      // }
+
+      const historyInsertQuery = `
+      INSERT INTO GYM_SLOT_DETAILS_HISTORY (
+        regdNo,
+        Gym_sheduling_id,
+        start_date,
+        start_time,
+        end_time,
+        end_date,
+        generated_date,
+        status,
+        Location,
+        campus,
+        masterID
+      ) VALUES (
+        @regdNo,
+        @Gym_sheduling_id,
+        @start_date,
+        @start_time,
+        @end_time,
+        @end_date,
+        @generated_date,
+        @status,
+        @Location,
+        @campus,
+        @masterID
+        
+      )
+    `;
+
+      await transaction
+        .request()
+        .input("regdNo", sql.VarChar(50), regdNo)
+        .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
+        .input("start_date", sql.Date, start_date)
+        .input("start_time", sql.VarChar(10), start_time)
+        .input("end_time", sql.VarChar(10), end_time)
+        .input("end_date", sql.Date, start_date)
+        .input("generated_date", sql.Date, currentDate)
+        .input("status", sql.VarChar(15), "booked")
+        .input("Location", sql.VarChar(20), Location)
+        .input("campus", sql.VarChar(10), campus)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .query(historyInsertQuery);
 
       const updateQuery = `
-            UPDATE GYM_SCHEDULING_MASTER
-            SET available = available - 1, occupied = occupied + 1
-            WHERE Gym_sheduling_id = @Gym_sheduling_id
-        `;
+      UPDATE GYM_SCHEDULING_MASTER
+      SET available = available - 1, occupied = occupied + 1
+      WHERE Gym_sheduling_id = @Gym_sheduling_id
+    `;
 
-      await pool
+      await transaction
         .request()
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
         .query(updateQuery);
 
+      await transaction.commit();
+
       return res.status(200).json({
         status: "success",
-        message: "Slots booked successfully for the next 30 days.",
+        message: "Slot booked successfully.",
       });
     } catch (error) {
       console.error(
         "Error inserting or updating gym scheduling record:",
         error
       );
+      await transaction.rollback();
       return res
         .status(500)
         .json({ status: "error", message: "Internal server error" });
@@ -368,15 +415,19 @@ module.exports = {
         .send("Missing required parameter: regdNo or masterID");
     }
 
+    let transaction;
     try {
       const pool = req.app.locals.sql;
+      transaction = new sql.Transaction(pool);
+
+      await transaction.begin();
 
       const bookingsQuery = `
-      SELECT DISTINCT Gym_sheduling_id, Location
+      SELECT * 
       FROM GYM_SLOT_DETAILS
       WHERE regdNo = @regdNo AND masterID = @masterID
     `;
-      const bookingsResult = await pool
+      const bookingsResult = await transaction
         .request()
         .input("regdNo", sql.VarChar(10), regdNo)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
@@ -385,6 +436,7 @@ module.exports = {
       const bookings = bookingsResult.recordset;
 
       if (bookings.length === 0) {
+        await transaction.rollback();
         return res
           .status(404)
           .send("No bookings found for the provided regdNo and masterID");
@@ -394,7 +446,7 @@ module.exports = {
       DELETE FROM GYM_SLOT_DETAILS
       WHERE regdNo = @regdNo AND masterID = @masterID
     `;
-      await pool
+      await transaction
         .request()
         .input("regdNo", sql.VarChar(10), regdNo)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
@@ -409,7 +461,7 @@ module.exports = {
         WHERE Gym_sheduling_id = @Gym_sheduling_id AND ID = @masterID AND Location = @Location
       `;
 
-        const matchingSlotResult = await pool
+        const matchingSlotResult = await transaction
           .request()
           .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
           .input("Location", sql.VarChar(20), Location)
@@ -417,7 +469,7 @@ module.exports = {
           .query(matchingSlotQuery);
 
         if (matchingSlotResult.recordset.length > 0) {
-          await pool
+          await transaction
             .request()
             .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
             .input("masterID", sql.VarChar(sql.MAX), masterID)
@@ -430,10 +482,81 @@ module.exports = {
       });
 
       await Promise.all(updates);
-      res.status(200).json({ message: "Bookings deleted successfully" });
+
+      const currentDate = new Date();
+      const historyInsertQuery = `
+      INSERT INTO GYM_SLOT_DETAILS_HISTORY (
+        regdNo,
+        Gym_sheduling_id,
+        start_date,
+        start_time,
+        end_time,
+        end_date,
+        generated_date,
+        status,
+        Location,
+        campus,
+        masterID
+      ) VALUES (
+        @regdNo,
+        @Gym_sheduling_id,
+        @start_date,
+        @start_time,
+        @end_time,
+        @end_date,
+        @generated_date,
+        'deleted',
+        @Location,
+        @campus,
+        @masterID
+      )
+    `;
+
+      await transaction
+        .request()
+        .input("regdNo", sql.VarChar(50), regdNo)
+        .input(
+          "Gym_sheduling_id",
+          sql.VarChar(15),
+          bookings[0].Gym_sheduling_id
+        )
+        .input("start_date", sql.Date, bookings[0].start_date)
+        .input("start_time", sql.VarChar(10), bookings[0].start_time)
+        .input("end_time", sql.VarChar(10), bookings[0].end_time)
+        .input("end_date", sql.Date, bookings[0].end_date)
+        .input("generated_date", sql.Date, bookings[0].generated_date)
+        .input("Location", sql.VarChar(20), bookings[0].Location)
+        .input("campus", sql.VarChar(10), bookings[0].campus)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .query(historyInsertQuery);
+
+      await transaction.commit();
+      res
+        .status(200)
+        .json({ message: "Bookings deleted and history updated successfully" });
     } catch (error) {
       console.error("Error deleting bookings:", error);
+      if (transaction) {
+        await transaction.rollback();
+      }
       res.status(500).send("Internal server error");
+    }
+  },
+
+  // History Get API
+
+  getAllHistory: async (req, res) => {
+    try {
+      const pool = req.app.locals.sql;
+      const result = await pool
+        .request()
+        .query(
+          "SELECT TOP 10 * FROM GYM_SLOT_DETAILS_HISTORY ORDER BY id DESC"
+        );
+      res.status(200).json(result.recordset);
+    } catch (err) {
+      console.error("Error fetching gym schedules:", err);
+      res.status(500).json({ error: "Failed to fetch gym schedules" });
     }
   },
 
