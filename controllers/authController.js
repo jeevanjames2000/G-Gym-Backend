@@ -32,7 +32,7 @@ module.exports = {
       updateRequest.input("regdNo", sql.VarChar(50), regdNo);
       updateRequest.input("token", sql.NVarChar(sql.MAX), token);
       await updateRequest.query(
-        "UPDATE GYM_SCHEDULING_MASTER SET token = @token WHERE regdNo = @regdNo"
+        "UPDATE GYM_TOKEN SET token = @token WHERE regdNo = @regdNo"
       );
       res.json({ token });
     } catch (err) {
@@ -45,9 +45,7 @@ module.exports = {
       const pool = req.app.locals.sql;
       const request = pool.request();
       request.input("regdno", sql.VarChar(50), regdno);
-      await request.query(
-        "DELETE FROM GYM_SLOT_DETAILS_HISTORY WHERE regdno = @regdno"
-      );
+      await request.query("DELETE FROM GYM_TOKEN WHERE regdno = @regdno");
       res.json({ message: "Logged out successfully" });
     } catch (err) {
       res.status(500).json({ error: "An error occurred during logout" });
@@ -63,7 +61,7 @@ module.exports = {
       request.input("token", sql.NVarChar(sql.MAX), token);
 
       const updateResult = await request.query(
-        "UPDATE GYM_SLOT_DETAILS_HISTORY SET token = @token WHERE regdno = @regdno"
+        "UPDATE GYM_TOKEN SET token = @token WHERE regdno = @regdno"
       );
 
       if (updateResult.rowsAffected[0] === 0) {
@@ -71,7 +69,7 @@ module.exports = {
         insertRequest.input("regdno", sql.VarChar(50), regdno);
         insertRequest.input("token", sql.NVarChar(sql.MAX), token);
         await insertRequest.query(
-          "INSERT INTO GYM_SLOT_DETAILS_HISTORY (regdno, token) VALUES (@regdno, @token)"
+          "INSERT INTO GYM_TOKEN (regdno, token) VALUES (@regdno, @token)"
         );
         res.json({ message: "New token inserted successfully" });
       } else {
