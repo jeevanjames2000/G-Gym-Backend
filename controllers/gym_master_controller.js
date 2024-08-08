@@ -134,5 +134,74 @@ module.exports = {
     }
   },
 
+  updateGymSchedule: async (req, res) => {
+    const pool = req.app.locals.sql;
+    const transaction = new sql.Transaction(pool);
+
+    try {
+      const { regdNo, start_time, start_date, id, masterID } = req.body;
+
+      if (!regdNo || !start_time || !start_date || !id || !masterID) {
+        return res.status(400).json({ message: "Missing required parameters" });
+      }
+
+      await transaction.begin();
+
+      const updateQuery = `
+      UPDATE GYM_SLOT_DETAILS
+      SET attendance = 'P'
+      WHERE id = @id AND regdNo = @regdNo AND start_time = @start_time;
+    `;
+
+      const updateResult = await transaction
+        .request()
+        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("start_time", sql.VarChar(100), start_time)
+        .input("start_date", sql.Date, start_date)
+        .input("id", sql.Int, id)
+        .query(updateQuery);
+
+      const updateHistoryQuery = `
+      UPDATE GYM_SLOT_DETAILS_HISTORY
+      SET attendance = 'P',status='booked'
+      WHERE masterID = @masterID AND regdNo = @regdNo AND start_time = @start_time;
+    `;
+
+      await transaction
+        .request()
+        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("start_time", sql.VarChar(100), start_time)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .query(updateHistoryQuery);
+
+      if (updateResult.rowsAffected[0] === 0) {
+        await transaction.rollback();
+        return res
+          .status(404)
+          .json({ message: "No matching record found to update" });
+      }
+
+      const deleteQuery = `
+      DELETE FROM GYM_SLOT_DETAILS
+      WHERE regdNo = @regdNo AND masterID = @masterID
+    `;
+
+      await transaction
+        .request()
+        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("masterID", sql.VarChar(50), masterID)
+        .query(deleteQuery);
+
+      await transaction.commit();
+      res.status(200).json({
+        message: "Gym schedule updated and slot deleted successfully",
+      });
+    } catch (error) {
+      await transaction.rollback();
+      console.error("Error updating gym schedule:", error);
+      res.status(500).json({ message: "Error updating gym slot attendance" });
+    }
+  },
+
   // SQL Syntax
 };

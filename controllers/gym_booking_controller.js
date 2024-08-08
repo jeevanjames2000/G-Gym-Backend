@@ -268,7 +268,8 @@ module.exports = {
         Location,
         campus,
         masterID,
-        qr_code
+        qr_code,
+        attendance
       ) VALUES (
         @regdNo,
         @Gym_sheduling_id,
@@ -281,7 +282,8 @@ module.exports = {
         @Location,
         @campus,
         @masterID,
-        @qr_code
+        @qr_code,
+        @attendance
       )
     `;
 
@@ -299,6 +301,7 @@ module.exports = {
         .input("campus", sql.VarChar(10), campus)
         .input("qr_code", sql.NVarChar(sql.MAX), qrCode)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .input("attendance", sql.VarChar(50), "N")
         .query(bookingInsertQuery);
 
       const historyInsertQuery = `
@@ -313,7 +316,8 @@ module.exports = {
         status,
         Location,
         campus,
-        masterID
+        masterID,
+        attendance
       ) VALUES (
         @regdNo,
         @Gym_sheduling_id,
@@ -325,7 +329,8 @@ module.exports = {
         @status,
         @Location,
         @campus,
-        @masterID
+        @masterID,
+        @attendance
         
       )
     `;
@@ -343,6 +348,8 @@ module.exports = {
         .input("Location", sql.VarChar(20), Location)
         .input("campus", sql.VarChar(10), campus)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .input("attendance", sql.VarChar(50), "N")
+
         .query(historyInsertQuery);
 
       const updateQuery = `
@@ -551,12 +558,46 @@ module.exports = {
       const result = await pool
         .request()
         .query(
-          "SELECT TOP 10 * FROM GYM_SLOT_DETAILS_HISTORY ORDER BY id DESC"
+          "SELECT TOP 15 * FROM GYM_SLOT_DETAILS_HISTORY ORDER BY id DESC"
         );
       res.status(200).json(result.recordset);
     } catch (err) {
       console.error("Error fetching gym schedules:", err);
       res.status(500).json({ error: "Failed to fetch gym schedules" });
+    }
+  },
+
+  getAdminSlots: async (req, res) => {
+    const { regdNo, start_time } = req.params;
+
+    if (!regdNo) {
+      return res.status(400).send("Missing required parameter: regdNo");
+    }
+
+    try {
+      const pool = req.app.locals.sql;
+
+      const request = pool.request();
+      request.input("regdNo", sql.VarChar(10), regdNo);
+      request.input("start_time", sql.VarChar(100), start_time);
+      // request.input("start_date", sql.Date, start_date);
+
+      const bookingsQuery = `
+          SELECT * FROM GYM_SLOT_DETAILS
+          WHERE regdNo = @regdNo AND start_time = @start_time
+      `;
+      const bookingsResult = await request.query(bookingsQuery);
+
+      if (bookingsResult.recordset.length === 0) {
+        return res
+          .status(404)
+          .send("No bookings found for the provided regdNo");
+      }
+
+      res.status(200).json(bookingsResult.recordset);
+    } catch (error) {
+      console.error("Error fetching bookings:", error);
+      res.status(500).send("Internal server error");
     }
   },
 

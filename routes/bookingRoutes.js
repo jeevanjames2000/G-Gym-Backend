@@ -33,5 +33,8 @@ router.get(
   authenticateJWT,
   booking_slot_controller.getAllHistory
 );
-
+router.get(
+  "/getAdminSlots/:regdNo/:start_time",
+  booking_slot_controller.getAdminSlots
+);
 module.exports = router;

@@ -22,5 +22,6 @@ router.post(
   authenticateJWT,
   gym_master_Controller.insertGymMasterScheduling
 );
+router.post("/updateGymSchedule", gym_master_Controller.updateGymSchedule);
 
 module.exports = router;
