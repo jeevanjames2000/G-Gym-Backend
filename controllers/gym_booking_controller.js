@@ -505,7 +505,7 @@ module.exports = {
         @end_time,
         @end_date,
         @generated_date,
-        'deleted',
+        'cancelled',
         @Location,
         @campus,
         @masterID
@@ -531,9 +531,9 @@ module.exports = {
         .query(historyInsertQuery);
 
       await transaction.commit();
-      res
-        .status(200)
-        .json({ message: "Bookings deleted and history updated successfully" });
+      res.status(200).json({
+        message: "Bookings cancelled and history updated successfully",
+      });
     } catch (error) {
       console.error("Error deleting bookings:", error);
       if (transaction) {
