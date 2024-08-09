@@ -174,6 +174,14 @@ module.exports = {
         .input("masterID", sql.VarChar(sql.MAX), masterID)
         .query(updateHistoryQuery);
 
+      await transaction
+        .request()
+        .input("masterID", sql.VarChar(sql.MAX), masterID).query(`
+            UPDATE GYM_SCHEDULING_MASTER
+            SET available = available + 1, occupied = occupied - 1
+            WHERE ID = @masterID
+          `);
+
       if (updateResult.rowsAffected[0] === 0) {
         await transaction.rollback();
         return res
