@@ -355,12 +355,13 @@ module.exports = {
       const updateQuery = `
       UPDATE GYM_SCHEDULING_MASTER
       SET available = available - 1, occupied = occupied + 1
-      WHERE Gym_sheduling_id = @Gym_sheduling_id
+      WHERE ID = @masterID
     `;
 
       await transaction
         .request()
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
         .query(updateQuery);
 
       await transaction.commit();
@@ -483,7 +484,7 @@ module.exports = {
             .input("Location", sql.VarChar(20), Location).query(`
             UPDATE GYM_SCHEDULING_MASTER
             SET available = available + 1, occupied = occupied - 1
-            WHERE Gym_sheduling_id = @Gym_sheduling_id AND ID = @masterID AND Location = @Location
+            WHERE ID = @masterID AND Gym_sheduling_id = @Gym_sheduling_id  AND Location = @Location
           `);
         }
       });
