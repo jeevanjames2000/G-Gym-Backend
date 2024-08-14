@@ -415,7 +415,7 @@ module.exports = {
   },
 
   deleteGymBookingsByRegdNo: async (req, res) => {
-    const { regdNo, masterID } = req.body;
+    const { regdNo, masterID, message, status } = req.body;
 
     if (!regdNo && !masterID) {
       return res
@@ -491,7 +491,6 @@ module.exports = {
 
       await Promise.all(updates);
 
-      const currentDate = new Date();
       const historyInsertQuery = `
       INSERT INTO GYM_SLOT_DETAILS_HISTORY (
         regdNo,
@@ -504,7 +503,8 @@ module.exports = {
         status,
         Location,
         campus,
-        masterID
+        masterID,
+        attendance
       ) VALUES (
         @regdNo,
         @Gym_sheduling_id,
@@ -513,10 +513,11 @@ module.exports = {
         @end_time,
         @end_date,
         @generated_date,
-        'cancelled',
+        @status,
         @Location,
         @campus,
-        @masterID
+        @masterID,
+        @attendance
       )
     `;
 
@@ -535,12 +536,14 @@ module.exports = {
         .input("generated_date", sql.Date, bookings[0].generated_date)
         .input("Location", sql.VarChar(20), bookings[0].Location)
         .input("campus", sql.VarChar(10), bookings[0].campus)
+        .input("status", sql.VarChar(20), status)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .input("attendance", sql.VarChar(50), message)
         .query(historyInsertQuery);
 
       await transaction.commit();
       res.status(200).json({
-        message: "Bookings cancelled and history updated successfully",
+        message: "Bookings history updated successfully",
       });
     } catch (error) {
       console.error("Error deleting bookings:", error);
