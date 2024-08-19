@@ -149,7 +149,7 @@ module.exports = {
 
       const updateQuery = `
       UPDATE GYM_SLOT_DETAILS
-      SET attendance = 'P'
+      SET attendance = 'Present'
       WHERE id = @id AND regdNo = @regdNo AND start_time = @start_time;
     `;
 
@@ -163,7 +163,7 @@ module.exports = {
 
       const updateHistoryQuery = `
       UPDATE GYM_SLOT_DETAILS_HISTORY
-      SET attendance = 'P',status='booked'
+      SET attendance = 'Present',status='booked'
       WHERE masterID = @masterID AND regdNo = @regdNo AND start_time = @start_time;
     `;
 

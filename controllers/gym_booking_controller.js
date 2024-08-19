@@ -179,7 +179,7 @@ module.exports = {
       const countSlotsQuery = `
         SELECT COUNT(*) AS slotCount
         FROM GYM_SLOT_DETAILS_HISTORY
-        WHERE start_date = @start_date AND attendance='P'
+        WHERE start_date = @start_date AND attendance='Present'
       `;
 
       const result = await transaction
@@ -199,14 +199,17 @@ module.exports = {
 
       const activeSlotsQuery = `
       SELECT * FROM GYM_SLOT_DETAILS
-      WHERE regdNo = @regdNo AND status = 'booked'
+      WHERE regdNo = @regdNo AND status = 'booked' AND start_date = @start_date
     `;
       const activeSlotsResult = await transaction
         .request()
         .input("regdNo", sql.VarChar(50), regdNo)
+        .input("start_date", sql.Date, start_date)
+
         .query(activeSlotsQuery);
 
       const newSlotTimePeriod = start_time.slice(-2);
+      console.log("newSlotTimePeriod: ", newSlotTimePeriod);
 
       const conflictingSlot = activeSlotsResult.recordset.find((slot) => {
         const existingSlotTimePeriod = slot.start_time.slice(-2);
@@ -277,7 +280,8 @@ module.exports = {
         });
       }
 
-      const currentDate = new Date(start_date);
+      const currentDate = new Date();
+      console.log("currentDate: ", currentDate);
 
       const convertTime = (time) => {
         const [formattedTime, modifier] = time.split(" ");
@@ -349,7 +353,7 @@ module.exports = {
         .input("campus", sql.VarChar(10), campus)
         .input("qr_code", sql.NVarChar(sql.MAX), qrCode)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
-        .input("attendance", sql.VarChar(50), "N")
+        .input("attendance", sql.VarChar(50), "Pending")
         .query(bookingInsertQuery);
 
       const historyInsertQuery = `
@@ -396,7 +400,7 @@ module.exports = {
         .input("Location", sql.VarChar(20), Location)
         .input("campus", sql.VarChar(10), campus)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
-        .input("attendance", sql.VarChar(50), "N")
+        .input("attendance", sql.VarChar(50), "Pending")
 
         .query(historyInsertQuery);
 
@@ -569,6 +573,8 @@ module.exports = {
       )
     `;
 
+      const currentDate = new Date();
+
       await transaction
         .request()
         .input("regdNo", sql.VarChar(50), regdNo)
@@ -581,7 +587,7 @@ module.exports = {
         .input("start_time", sql.VarChar(10), bookings[0].start_time)
         .input("end_time", sql.VarChar(10), bookings[0].end_time)
         .input("end_date", sql.Date, bookings[0].end_date)
-        .input("generated_date", sql.Date, bookings[0].generated_date)
+        .input("generated_date", sql.Date, currentDate)
         .input("Location", sql.VarChar(20), bookings[0].Location)
         .input("campus", sql.VarChar(10), bookings[0].campus)
         .input("status", sql.VarChar(20), status)
