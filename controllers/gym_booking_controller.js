@@ -176,6 +176,26 @@ module.exports = {
 
     try {
       await transaction.begin();
+      const countSlotsQuery = `
+        SELECT COUNT(*) AS slotCount
+        FROM GYM_SLOT_DETAILS_HISTORY
+        WHERE start_date = @start_date AND attendance='P'
+      `;
+
+      const result = await transaction
+        .request()
+        .input("start_date", sql.Date, start_date)
+        .query(countSlotsQuery);
+
+      const slotCount = result.recordset[0].slotCount;
+
+      if (slotCount >= 2) {
+        await transaction.rollback();
+        return res.status(400).json({
+          status: "error",
+          message: "Maximum of 2 slots per day",
+        });
+      }
 
       const activeSlotsQuery = `
       SELECT * FROM GYM_SLOT_DETAILS
@@ -190,7 +210,7 @@ module.exports = {
 
       const conflictingSlot = activeSlotsResult.recordset.find((slot) => {
         const existingSlotTimePeriod = slot.start_time.slice(-2);
-        return existingSlotTimePeriod === newSlotTimePeriod; // Check if they are in the same period (AM/PM)
+        return existingSlotTimePeriod === newSlotTimePeriod;
       });
 
       if (conflictingSlot) {
@@ -200,6 +220,35 @@ module.exports = {
           message: "Cannot book another slot in same time zone.",
         });
       }
+
+      // prev
+
+      const sametimeQuery = `
+      SELECT * FROM GYM_SLOT_DETAILS_HISTORY
+      WHERE start_date= @start_date AND attendance ='P' AND masterID =@masterID
+    `;
+      const activeTimezone = await transaction
+        .request()
+        .input("start_date", sql.Date, start_date)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .query(sametimeQuery);
+
+      const currentTimePeriod = start_time.slice(-2);
+
+      const conflictingTimeSlot = activeTimezone.recordset.find((slot) => {
+        const existingSlotTimePeriod = slot.start_time.slice(-2);
+        return existingSlotTimePeriod === currentTimePeriod;
+      });
+
+      if (conflictingTimeSlot) {
+        await transaction.rollback();
+        return res.status(400).json({
+          status: "error",
+          message: "Cannot book slot another slot on same session",
+        });
+      }
+
+      // prev
 
       const availableSlotsQuery = `
       SELECT * FROM GYM_SCHEDULING_MASTER
@@ -220,7 +269,6 @@ module.exports = {
         });
       }
 
-      // Ensure there is an available slot to book
       if (availableSlot.available <= 0) {
         await transaction.rollback();
         return res.status(400).json({
