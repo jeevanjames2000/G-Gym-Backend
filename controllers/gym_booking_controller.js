@@ -281,7 +281,8 @@ module.exports = {
       }
 
       const currentDate = new Date();
-      console.log("currentDate: ", currentDate);
+      const istOffset = 5.5 * 60 * 60 * 1000; // IST offset in milliseconds
+      const localDate = new Date(currentDate.getTime() + istOffset);
 
       const convertTime = (time) => {
         const [formattedTime, modifier] = time.split(" ");
@@ -347,13 +348,13 @@ module.exports = {
         .input("start_time", sql.VarChar(10), start_time)
         .input("end_time", sql.VarChar(10), end_time)
         .input("end_date", sql.Date, start_date)
-        .input("generated_date", sql.Date, currentDate)
+        .input("generated_date", sql.Date, localDate)
         .input("status", sql.VarChar(15), "booked")
         .input("Location", sql.VarChar(20), Location)
         .input("campus", sql.VarChar(10), campus)
         .input("qr_code", sql.NVarChar(sql.MAX), qrCode)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
-        .input("attendance", sql.VarChar(50), "Pending")
+        .input("attendance", sql.VarChar(50), null)
         .query(bookingInsertQuery);
 
       const historyInsertQuery = `
@@ -395,12 +396,12 @@ module.exports = {
         .input("start_time", sql.VarChar(10), start_time)
         .input("end_time", sql.VarChar(10), end_time)
         .input("end_date", sql.Date, start_date)
-        .input("generated_date", sql.Date, currentDate)
+        .input("generated_date", sql.DateTime, localDate)
         .input("status", sql.VarChar(15), "booked")
         .input("Location", sql.VarChar(20), Location)
         .input("campus", sql.VarChar(10), campus)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
-        .input("attendance", sql.VarChar(50), "Pending")
+        .input("attendance", sql.VarChar(50), null)
 
         .query(historyInsertQuery);
 
@@ -574,6 +575,8 @@ module.exports = {
     `;
 
       const currentDate = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const localDate = new Date(currentDate.getTime() + istOffset);
 
       await transaction
         .request()
@@ -587,7 +590,7 @@ module.exports = {
         .input("start_time", sql.VarChar(10), bookings[0].start_time)
         .input("end_time", sql.VarChar(10), bookings[0].end_time)
         .input("end_date", sql.Date, bookings[0].end_date)
-        .input("generated_date", sql.Date, currentDate)
+        .input("generated_date", sql.DateTime, localDate)
         .input("Location", sql.VarChar(20), bookings[0].Location)
         .input("campus", sql.VarChar(10), bookings[0].campus)
         .input("status", sql.VarChar(20), status)
