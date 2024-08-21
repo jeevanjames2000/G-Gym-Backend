@@ -19,7 +19,7 @@ module.exports = {
     try {
       const pool = req.app.locals.sql;
       const request = pool.request();
-      request.input("regdNo", sql.Int, regdNo);
+      request.input("regdNo", sql.VarChar(sql.MAX), regdNo);
       const result = await request.query(
         "SELECT * FROM GYM_SCHEDULING_MASTER WHERE regdNo = @regdNo"
       );
@@ -29,7 +29,7 @@ module.exports = {
       const user = result.recordset[0];
       const token = generateToken(user);
       const updateRequest = pool.request();
-      updateRequest.input("regdNo", sql.VarChar(50), regdNo);
+      updateRequest.input("regdNo", sql.VarChar(sql.MAX), regdNo);
       updateRequest.input("token", sql.NVarChar(sql.MAX), token);
       await updateRequest.query(
         "UPDATE GYM_TOKEN SET token = @token WHERE regdNo = @regdNo"
@@ -44,7 +44,7 @@ module.exports = {
     try {
       const pool = req.app.locals.sql;
       const request = pool.request();
-      request.input("regdno", sql.VarChar(50), regdno);
+      request.input("regdno", sql.VarChar(sql.MAX), regdno);
       await request.query("DELETE FROM GYM_TOKEN WHERE regdno = @regdno");
       res.json({ message: "Logged out successfully" });
     } catch (err) {
@@ -57,7 +57,7 @@ module.exports = {
     try {
       const pool = req.app.locals.sql;
       const request = pool.request();
-      request.input("regdno", sql.VarChar(50), regdno);
+      request.input("regdno", sql.VarChar(sql.MAX), regdno);
       request.input("token", sql.NVarChar(sql.MAX), token);
 
       const updateResult = await request.query(
@@ -66,7 +66,7 @@ module.exports = {
 
       if (updateResult.rowsAffected[0] === 0) {
         const insertRequest = pool.request();
-        insertRequest.input("regdno", sql.VarChar(50), regdno);
+        insertRequest.input("regdno", sql.VarChar(sql.MAX), regdno);
         insertRequest.input("token", sql.NVarChar(sql.MAX), token);
         await insertRequest.query(
           "INSERT INTO GYM_TOKEN (regdno, token) VALUES (@regdno, @token)"

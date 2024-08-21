@@ -29,7 +29,7 @@ router.delete(
 // history get api route
 
 router.get(
-  "/getAllHistory",
+  "/getAllHistory/:regdNo",
   authenticateJWT,
   booking_slot_controller.getAllHistory
 );

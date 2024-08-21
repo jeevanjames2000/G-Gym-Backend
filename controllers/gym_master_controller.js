@@ -129,7 +129,6 @@ module.exports = {
 
       res.status(201).send("Gym scheduling record created successfully");
     } catch (error) {
-      console.error("Error inserting gym scheduling record:", error);
       res.status(500).send("Error inserting gym scheduling record");
     }
   },
@@ -185,7 +184,7 @@ module.exports = {
 
       const historyResult = await transaction
         .request()
-        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("start_time", sql.VarChar(100), start_time)
         .input("start_date", sql.Date, start_date)
         .query(historycheck);
@@ -205,7 +204,7 @@ module.exports = {
     `;
       const bookingsResult = await transaction
         .request()
-        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("start_time", sql.VarChar(100), start_time)
         .input("start_date", sql.Date, start_date)
         .query(bookingsQuery);
@@ -213,7 +212,6 @@ module.exports = {
       const currentTime = new Date();
       const istOffset = 5.5 * 60 * 60 * 1000;
       const localTime = new Date(currentTime.getTime() + istOffset);
-      console.log("localTime: ", localTime);
 
       const isMatch = bookingsResult.recordset.some((slot) => {
         const slotStart = convertTimeTo24HourIST(slot.start_time);
@@ -221,7 +219,6 @@ module.exports = {
 
         return slotStart >= localTime && slotEnd <= localTime;
       });
-      console.log("isMatch: ", isMatch);
 
       if (isMatch) {
         await transaction.rollback();
@@ -239,7 +236,7 @@ module.exports = {
 
       const updateResult = await transaction
         .request()
-        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("start_time", sql.VarChar(100), start_time)
         .input("start_date", sql.Date, start_date)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
@@ -258,7 +255,7 @@ module.exports = {
 
       await transaction
         .request()
-        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("start_time", sql.VarChar(100), start_time)
         .input("start_date", sql.Date, start_date)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
@@ -279,7 +276,7 @@ module.exports = {
 
       await transaction
         .request()
-        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("masterID", sql.VarChar(50), masterID)
         .query(deleteQuery);
 

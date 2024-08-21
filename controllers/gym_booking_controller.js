@@ -114,7 +114,6 @@ module.exports = {
   getGymSchedulesByLocationSQL: async function (req, res) {
     const locationId = req.params.locationId;
     const date = req.params.date;
-    console.log("date: ", date);
 
     try {
       const query = `
@@ -188,7 +187,7 @@ module.exports = {
       const slotsResult = await transaction
         .request()
         .input("start_date", sql.Date, start_date)
-        .input("regdNo", sql.VarChar(50), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .query(slotsQuery);
 
       const currentSlotTimePeriod = start_time.slice(-2);
@@ -304,7 +303,7 @@ module.exports = {
 
       await transaction
         .request()
-        .input("regdNo", sql.VarChar(50), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
         .input("start_date", sql.Date, start_date)
         .input("start_time", sql.VarChar(10), start_time)
@@ -352,7 +351,7 @@ module.exports = {
 
       await transaction
         .request()
-        .input("regdNo", sql.VarChar(50), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
         .input("start_date", sql.Date, start_date)
         .input("start_time", sql.VarChar(10), start_time)
@@ -408,7 +407,7 @@ module.exports = {
       const pool = req.app.locals.sql;
 
       const request = pool.request();
-      request.input("regdNo", sql.VarChar(10), regdNo);
+      request.input("regdNo", sql.VarChar(sql.MAX), regdNo);
 
       const bookingsQuery = `
           SELECT * FROM GYM_SLOT_DETAILS
@@ -452,7 +451,7 @@ module.exports = {
     `;
       const bookingsResult = await transaction
         .request()
-        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
         .query(bookingsQuery);
 
@@ -471,7 +470,7 @@ module.exports = {
     `;
       await transaction
         .request()
-        .input("regdNo", sql.VarChar(10), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
         .query(deleteQuery);
 
@@ -542,7 +541,7 @@ module.exports = {
 
       await transaction
         .request()
-        .input("regdNo", sql.VarChar(50), regdNo)
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .input(
           "Gym_sheduling_id",
           sql.VarChar(15),
@@ -576,17 +575,20 @@ module.exports = {
   // History Get API
 
   getAllHistory: async (req, res) => {
+    const { regdNo } = req.params;
+
     try {
       const pool = req.app.locals.sql;
       const result = await pool
         .request()
+        .input("regdNo", sql.VarChar(sql.MAX), regdNo)
         .query(
-          "SELECT TOP 15 * FROM GYM_SLOT_DETAILS_HISTORY ORDER BY id DESC"
+          "SELECT TOP 15 * FROM GYM_SLOT_DETAILS_HISTORY WHERE regdNo = @regdNo ORDER BY id DESC"
         );
+
       res.status(200).json(result.recordset);
     } catch (err) {
-      console.error("Error fetching gym schedules:", err);
-      res.status(500).json({ error: "Failed to fetch gym schedules" });
+      res.status(500).json({ error: "Internal server error" });
     }
   },
 
@@ -601,7 +603,7 @@ module.exports = {
       const pool = req.app.locals.sql;
 
       const request = pool.request();
-      request.input("regdNo", sql.VarChar(10), regdNo);
+      request.input("regdNo", sql.VarChar(sql.MAX), regdNo);
       request.input("start_time", sql.VarChar(100), start_time);
       // request.input("start_date", sql.Date, start_date);
 
