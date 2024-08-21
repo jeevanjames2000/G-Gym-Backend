@@ -176,81 +176,54 @@ module.exports = {
 
     try {
       await transaction.begin();
-      const countSlotsQuery = `
-        SELECT COUNT(*) AS slotCount
-        FROM GYM_SLOT_DETAILS_HISTORY
-        WHERE start_date = @start_date AND attendance='Present'
-      `;
-
-      const result = await transaction
+      const slotsQuery = `
+    SELECT start_time
+    FROM GYM_SLOT_DETAILS_HISTORY
+    WHERE start_date = @start_date AND attendance = 'Present'
+    UNION ALL
+    SELECT start_time
+    FROM GYM_SLOT_DETAILS
+    WHERE start_date = @start_date AND regdNo = @regdNo AND status = 'booked'
+  `;
+      const slotsResult = await transaction
         .request()
         .input("start_date", sql.Date, start_date)
-        .query(countSlotsQuery);
-
-      const slotCount = result.recordset[0].slotCount;
-
-      if (slotCount >= 2) {
-        await transaction.rollback();
-        return res.status(400).json({
-          status: "error",
-          message: "Maximum of 2 slots per day",
-        });
-      }
-
-      const activeSlotsQuery = `
-      SELECT * FROM GYM_SLOT_DETAILS
-      WHERE regdNo = @regdNo AND status = 'booked' AND start_date = @start_date
-    `;
-      const activeSlotsResult = await transaction
-        .request()
         .input("regdNo", sql.VarChar(50), regdNo)
-        .input("start_date", sql.Date, start_date)
+        .query(slotsQuery);
 
-        .query(activeSlotsQuery);
+      const currentSlotTimePeriod = start_time.slice(-2);
 
-      const newSlotTimePeriod = start_time.slice(-2);
-      console.log("newSlotTimePeriod: ", newSlotTimePeriod);
+      let amSlotExists = false;
+      let pmSlotExists = false;
 
-      const conflictingSlot = activeSlotsResult.recordset.find((slot) => {
-        const existingSlotTimePeriod = slot.start_time.slice(-2);
-        return existingSlotTimePeriod === newSlotTimePeriod;
+      slotsResult.recordset.forEach((slot) => {
+        const slotTimePeriod = slot.start_time.slice(-2);
+        if (slotTimePeriod === "AM") {
+          amSlotExists = true;
+        } else if (slotTimePeriod === "PM") {
+          pmSlotExists = true;
+        }
       });
 
-      if (conflictingSlot) {
+      if (
+        (currentSlotTimePeriod === "AM" && amSlotExists) ||
+        (currentSlotTimePeriod === "PM" && pmSlotExists)
+      ) {
         await transaction.rollback();
         return res.status(400).json({
           status: "error",
-          message: "Cannot book another slot in same time zone.",
+          message:
+            "Cannot book more than one slot in the same time zone (AM/PM) per day.",
         });
       }
 
-      // prev
-
-      const sametimeQuery = `
-      SELECT * FROM GYM_SLOT_DETAILS_HISTORY
-      WHERE start_date= @start_date AND attendance ='P' AND masterID =@masterID
-    `;
-      const activeTimezone = await transaction
-        .request()
-        .input("start_date", sql.Date, start_date)
-        .input("masterID", sql.VarChar(sql.MAX), masterID)
-        .query(sametimeQuery);
-
-      const currentTimePeriod = start_time.slice(-2);
-
-      const conflictingTimeSlot = activeTimezone.recordset.find((slot) => {
-        const existingSlotTimePeriod = slot.start_time.slice(-2);
-        return existingSlotTimePeriod === currentTimePeriod;
-      });
-
-      if (conflictingTimeSlot) {
+      if (amSlotExists && pmSlotExists) {
         await transaction.rollback();
         return res.status(400).json({
           status: "error",
-          message: "Cannot book slot another slot on same session",
+          message: "Maximum of 2 slots allowed per day: one AM and one PM.",
         });
       }
-
       // prev
 
       const availableSlotsQuery = `
@@ -281,19 +254,8 @@ module.exports = {
       }
 
       const currentDate = new Date();
-      const istOffset = 5.5 * 60 * 60 * 1000; // IST offset in milliseconds
+      const istOffset = 5.5 * 60 * 60 * 1000;
       const localDate = new Date(currentDate.getTime() + istOffset);
-
-      const convertTime = (time) => {
-        const [formattedTime, modifier] = time.split(" ");
-        let [hours, minutes] = formattedTime.split(":").map(Number);
-        if (modifier === "PM" && hours !== 12) hours += 12;
-        else if (modifier === "AM" && hours === 12) hours = 0;
-        return `${hours}:${minutes}`;
-      };
-
-      const formattedStartTime = convertTime(start_time);
-      const formattedEndTime = convertTime(end_time);
 
       const bookingData = {
         regdNo,
@@ -652,7 +614,7 @@ module.exports = {
       if (bookingsResult.recordset.length === 0) {
         return res
           .status(404)
-          .send("No bookings found for the provided regdNo");
+          .json("No bookings found for the provided regdNo");
       }
 
       res.status(200).json(bookingsResult.recordset);
