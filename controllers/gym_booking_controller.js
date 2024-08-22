@@ -178,7 +178,7 @@ module.exports = {
       const slotsQuery = `
     SELECT start_time
     FROM GYM_SLOT_DETAILS_HISTORY
-    WHERE start_date = @start_date AND attendance = 'Present'
+    WHERE regdNo=@regdNo AND start_date = @start_date AND attendance = 'Present'
     UNION ALL
     SELECT start_time
     FROM GYM_SLOT_DETAILS
