@@ -227,11 +227,13 @@ module.exports = {
 
       const availableSlotsQuery = `
       SELECT * FROM GYM_SCHEDULING_MASTER
-      WHERE Gym_sheduling_id = @Gym_sheduling_id
+      WHERE ID=@masterID AND Gym_sheduling_id = @Gym_sheduling_id AND start_date=@start_date
     `;
       const availableSlotsResult = await transaction
         .request()
         .input("Gym_sheduling_id", sql.VarChar(15), Gym_sheduling_id)
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .input("start_date", sql.Date, start_date)
         .query(availableSlotsQuery);
 
       const availableSlot = availableSlotsResult.recordset[0];
@@ -244,7 +246,7 @@ module.exports = {
         });
       }
 
-      if (availableSlot.available <= 0) {
+      if (availableSlot.available === 0) {
         await transaction.rollback();
         return res.status(400).json({
           status: "error",

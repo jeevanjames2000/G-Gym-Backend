@@ -266,7 +266,7 @@ module.exports = {
         .input("masterID", sql.VarChar(sql.MAX), masterID).query(`
         UPDATE GYM_SCHEDULING_MASTER
         SET available = available + 1, occupied = occupied - 1
-        WHERE ID = @masterID
+        WHERE ID = @masterID AND start_date=@start_date
       `);
 
       const deleteQuery = `
@@ -277,6 +277,7 @@ module.exports = {
       await transaction
         .request()
         .input("regdNo", sql.VarChar(sql.MAX), regdNo)
+        .input("start_date", sql.Date, start_date)
         .input("masterID", sql.VarChar(50), masterID)
         .query(deleteQuery);
 
