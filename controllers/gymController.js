@@ -44,6 +44,7 @@ module.exports = {
       res.status(500).json({ message: error.message });
     }
   },
+
   getGymSchedule: async (req, res) => {
     try {
       const gymSchedules = await Gym.find();

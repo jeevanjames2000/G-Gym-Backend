@@ -21,7 +21,7 @@ module.exports = {
       const request = pool.request();
       request.input("regdNo", sql.VarChar(sql.MAX), regdNo);
       const result = await request.query(
-        "SELECT * FROM GYM_SCHEDULING_MASTER WHERE regdNo = @regdNo"
+        "SELECT * FROM GYM_SLOT_DETAILS WHERE regdNo = @regdNo"
       );
       if (result.recordset.length === 0) {
         return res.status(401).json({ error: "Invalid registration number" });

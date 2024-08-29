@@ -6,18 +6,10 @@ const cors = require("cors");
 const sql = require("mssql");
 const app = express();
 const port = process.env.PORT;
+const swaggerUi = require("swagger-ui-express");
+const swaggerSpec = require("./utils/swagger");
 
 app.use(cors());
-
-// mongodb connection
-// mongoose
-//   .connect(
-//     "mongodb+srv://jtamada:a4oDDDQ5nRak03rQ@cluster0.ln5fxwi.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-//   )
-//   .then(() => console.log("MongoDB connected"))
-//   .catch((err) => {
-//     console.error("Error connecting to MongoDB:", err.message);
-//   });
 
 // sql server connections
 const sqlConfig = {
@@ -57,6 +49,8 @@ app.use(bodyParser.json());
 app.use("/api/gym", require("./routes/gymRoutes"));
 app.use("/slot/gym", require("./routes/bookingRoutes"));
 app.use("/auth", require("./routes/authRoutes"));
+
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 const PORT = port || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
