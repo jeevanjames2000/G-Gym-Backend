@@ -1,3 +1,0 @@
-[2024-09-02T06:01:33.141Z] [{"regdNo":"2023006357","message":"Login Token Stored Successfully"}]
-[2024-09-02T06:01:37.391Z] [{"regdNo":"2023006357","message":"Login Token Stored Successfully"}]
-[2024-09-03T04:57:26.397Z] {"regdNo":"2023006357","start_time":"10:00 AM","start_date":"2024-09-03","status":"Present"}
