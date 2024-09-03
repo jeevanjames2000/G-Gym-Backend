@@ -1,11 +1,32 @@
 const sql = require("mssql");
 const qr = require("qrcode");
+
 const convertTime = (time) => {
   let [hours, minutes, period] = time.match(/(\d+):(\d+) (\w+)/).slice(1);
   const originalTime = `${hours}:${minutes} ${period}`;
   if (period === "PM" && hours !== "12") hours = parseInt(hours, 10) + 12;
   if (period === "AM" && hours === "12") hours = "00";
   return { formattedTime: `${hours}:${minutes}:00`, originalTime };
+};
+
+const convertTimeTo24HourIST = (time) => {
+  const [timePart, modifier] = time.split(" ");
+  let [hours, minutes] = timePart.split(":").map(Number);
+
+  if (modifier === "PM" && hours !== 12) {
+    hours += 12;
+  } else if (modifier === "AM" && hours === 12) {
+    hours = 0;
+  }
+
+  const date = new Date();
+  date.setUTCHours(hours, minutes, 0, 0);
+
+  // convert to Indian Standard Time
+  const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
+  const istDate = new Date(date.getTime() + istOffset);
+
+  return istDate;
 };
 const generateQRCode = async (data) => {
   try {
@@ -595,7 +616,7 @@ module.exports = {
   },
 
   getAdminSlots: async (req, res) => {
-    const { regdNo, start_time } = req.params;
+    const { regdNo, start_time, start_date } = req.params;
 
     if (!regdNo) {
       return res.status(400).send("Missing required parameter: regdNo");
@@ -603,18 +624,46 @@ module.exports = {
 
     try {
       const pool = req.app.locals.sql;
-
       const request = pool.request();
+
       request.input("regdNo", sql.VarChar(sql.MAX), regdNo);
       request.input("start_time", sql.VarChar(100), start_time);
-      // request.input("start_date", sql.Date, start_date);
+      request.input("start_date", sql.Date, start_date);
 
+      const historyQuery = `
+      SELECT * FROM GYM_SLOT_DETAILS_HISTORY
+      WHERE regdNo = @regdNo AND start_date = @start_date AND start_time = @start_time
+    `;
+      const historyResult = await request.query(historyQuery);
+      const historyData = historyResult.recordset[0];
+
+      if (historyData?.attendance === "Present") {
+        return res.status(400).json("User Already Occupied");
+      }
+
+      // Second query to fetch booking details from GYM_SLOT_DETAILS
       const bookingsQuery = `
-          SELECT * FROM GYM_SLOT_DETAILS
-          WHERE regdNo = @regdNo AND start_time = @start_time
-      `;
+      SELECT * FROM GYM_SLOT_DETAILS
+      WHERE regdNo = @regdNo AND start_time = @start_time AND start_date=@start_date
+    `;
       const bookingsResult = await request.query(bookingsQuery);
 
+      const currentTime = new Date();
+      const istOffset = 5.5 * 60 * 60 * 1000;
+      const localTime = new Date(currentTime.getTime() + istOffset);
+
+      const isMatch = bookingsResult.recordset.some((slot) => {
+        const slotStart = convertTimeTo24HourIST(slot.start_time);
+        const slotEnd = convertTimeTo24HourIST(slot.end_time);
+
+        return slotStart >= localTime && slotEnd <= localTime;
+      });
+
+      if (isMatch) {
+        return res.status(400).json({
+          message: "Cannot enter before the slot time",
+        });
+      }
       if (bookingsResult.recordset.length === 0) {
         return res
           .status(404)

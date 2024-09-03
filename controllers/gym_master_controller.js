@@ -37,6 +37,8 @@ module.exports = {
         return res.status(404).json({
           message: "No gym schedules found for the specified location and date",
         });
+
+        res.json({ message: "Token updated successfully" });
       }
       res.status(200).json(result.recordset);
     } catch (err) {
@@ -137,13 +139,12 @@ module.exports = {
     const { regdNo, start_time, start_date, masterID } = req.body;
 
     if (!regdNo || !start_time || !start_date || !masterID) {
-      return res.status(400).json({ message: "Missing required parameters" });
+      return res.status(400).json("Missing required parameters");
     }
 
-    const convertTimeTo24HourIST = (time) => {
+    const convertTimeTo24Hour = (time) => {
       const [timePart, modifier] = time.split(" ");
       let [hours, minutes] = timePart.split(":").map(Number);
-
       if (modifier === "PM" && hours !== 12) {
         hours += 12;
       } else if (modifier === "AM" && hours === 12) {
@@ -151,22 +152,16 @@ module.exports = {
       }
 
       const date = new Date();
-      date.setUTCHours(hours, minutes, 0, 0);
+      date.setHours(hours, minutes, 0, 0);
 
-      // convert to Indian Standard Time
-      const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC + 5:30
-      const istDate = new Date(date.getTime() + istOffset);
-
-      return istDate;
+      return date;
     };
 
     const currentDate = new Date().toISOString().split("T")[0];
     const startdate = start_date.split("T")[0];
 
     if (currentDate !== startdate) {
-      return res
-        .status(400)
-        .json({ message: "Cannot Enter before the slot date!" });
+      return res.status(400).json("Cannot Enter before the slot date!");
     }
 
     const pool = req.app.locals.sql;
@@ -191,7 +186,7 @@ module.exports = {
 
       const historydata = historyResult.recordset[0];
 
-      if (historydata.attendance === "Present") {
+      if (historydata?.attendance === "Present") {
         return res.status(400).json("User Already Occupied");
       }
 
@@ -210,29 +205,32 @@ module.exports = {
         .query(bookingsQuery);
 
       const currentTime = new Date();
-      const istOffset = 5.5 * 60 * 60 * 1000;
-      const localTime = new Date(currentTime.getTime() + istOffset);
 
-      const isMatch = bookingsResult.recordset.some((slot) => {
-        const slotStart = convertTimeTo24HourIST(slot.start_time);
-        const slotEnd = convertTimeTo24HourIST(slot.end_time);
-
-        return slotStart >= localTime && slotEnd <= localTime;
+      const match = bookingsResult.recordset.some((slot) => {
+        const slotStart = convertTimeTo24Hour(slot.start_time);
+        const slotEnd = convertTimeTo24Hour(slot.end_time);
+        return currentTime >= slotStart && currentTime <= slotEnd;
       });
 
-      if (isMatch) {
+      const overtimematch = bookingsResult.recordset.some((slot) => {
+        const slotEnd = convertTimeTo24Hour(slot.end_time);
+        return currentTime >= slotEnd;
+      });
+      if (overtimematch) {
         await transaction.rollback();
-        return res.status(400).json({
-          message: "Cannot enter before the slot time",
-        });
+        return res.status(400).json("Slot expired");
+      }
+      if (!match) {
+        await transaction.rollback();
+        return res.status(400).json("Cannot enter before the slot time");
       }
 
-      // main query
+      //   // main query
       const updateQuery = `
-      UPDATE GYM_SLOT_DETAILS
-      SET attendance = 'Present'
-      WHERE masterID = @masterID AND regdNo = @regdNo AND start_time = @start_time AND start_date = @start_date;
-    `;
+        UPDATE GYM_SLOT_DETAILS
+        SET attendance = 'Present'
+        WHERE masterID = @masterID AND regdNo = @regdNo AND start_time = @start_time AND start_date = @start_date;
+      `;
 
       const updateResult = await transaction
         .request()
@@ -244,7 +242,7 @@ module.exports = {
 
       if (updateResult.rowsAffected[0] === 0) {
         await transaction.rollback();
-        return res.status(404).json({ message: "No slot found" });
+        return res.status(404).json("No slot found");
       }
 
       const updateHistoryQuery = `
@@ -263,7 +261,8 @@ module.exports = {
 
       await transaction
         .request()
-        .input("masterID", sql.VarChar(sql.MAX), masterID).query(`
+        .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .input("start_date", sql.Date, start_date).query(`
         UPDATE GYM_SCHEDULING_MASTER
         SET available = available + 1, occupied = occupied - 1
         WHERE ID = @masterID AND start_date=@start_date
@@ -282,15 +281,13 @@ module.exports = {
         .query(deleteQuery);
 
       await transaction.commit();
-      return res.status(200).json({
-        message: "Gym schedule updated and slot deleted successfully",
-      });
+      return res
+        .status(200)
+        .json("Gym schedule updated and slot deleted successfully");
     } catch (error) {
       await transaction.rollback();
       console.error("Error updating gym schedule:", error);
-      return res
-        .status(500)
-        .json({ message: "Error updating gym slot attendance" });
+      return res.status(500).json("Error updating gym slot attendance");
     }
   },
 
