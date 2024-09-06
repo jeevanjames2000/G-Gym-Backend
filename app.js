@@ -18,7 +18,7 @@ const sqlConfig = {
   server: "192.168.64.36",
   database: "GYM",
   options: {
-    encrypt: true,
+    encrypt: false,
     trustServerCertificate: true,
   },
 };

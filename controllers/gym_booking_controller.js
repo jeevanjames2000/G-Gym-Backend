@@ -677,5 +677,56 @@ module.exports = {
     }
   },
 
+  getAdminslotsCountByTimeAndDate: async (req, res) => {
+    const { start_time, Location, start_date } = req.params;
+
+    try {
+      const pool = req.app.locals.sql;
+      const result = await pool
+        .request()
+        .input("start_time", sql.VarChar(100), start_time)
+        .input("start_date", sql.Date, start_date)
+        .input("Location", sql.VarChar(20), Location)
+        .query(
+          `select COUNT(*) as total_slots
+         from GYM_SLOT_DETAILS 
+         where start_time=@start_time AND start_date=@start_date AND Location=@Location`
+        );
+
+      const result2 = await pool
+        .request()
+        .input("start_time", sql.VarChar(100), start_time)
+        .input("start_date", sql.Date, start_date)
+        .input("Location", sql.VarChar(20), Location)
+        .query(
+          `select COUNT(*) as present_count 
+         from GYM_SLOT_DETAILS_HISTORY 
+         where attendance='Present' AND start_time=@start_time AND start_date=@start_date AND Location=@Location`
+        );
+
+      const result3 = await pool
+        .request()
+        .input("start_time", sql.VarChar(100), start_time)
+        .input("start_date", sql.Date, start_date)
+        .input("Location", sql.VarChar(20), Location)
+        .query(
+          `select *  
+         from GYM_SLOT_DETAILS_HISTORY 
+         where attendance='Present' AND start_time=@start_time AND start_date=@start_date AND Location=@Location`
+        );
+
+      res.status(200).json([
+        {
+          waiting: result.recordset[0].total_slots,
+        },
+        { arrived: result2.recordset[0].present_count },
+        { present: result3.recordset[0] },
+      ]);
+    } catch (err) {
+      console.log("err: ", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
   // SQL Syntax
 };

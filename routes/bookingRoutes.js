@@ -102,5 +102,9 @@ router.get(
   "/getAdminSlots/:regdNo/:start_time/:start_date",
   booking_slot_controller.getAdminSlots
 );
+router.get(
+  "/getAdminslotsCountByTimeAndDate/:Location/:start_time/:start_date",
+  booking_slot_controller.getAdminslotsCountByTimeAndDate
+);
 
 module.exports = router;
