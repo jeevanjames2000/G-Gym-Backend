@@ -17,6 +17,7 @@ router.get(
 );
 
 // Master db data insert api
+router.post("/insertSlots/:numDays", gym_master_Controller.insertSlots);
 
 router.post(
   "/insertGymMasterScheduling",
