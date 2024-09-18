@@ -720,8 +720,20 @@ module.exports = {
          where attendance='Present' AND start_time=@start_time AND start_date=@start_date AND Location=@Location`
         );
 
+      const waitingList = await pool
+        .request()
+        .input("start_time", sql.VarChar(100), start_time)
+        .input("start_date", sql.Date, start_date)
+        .input("Location", sql.VarChar(20), Location)
+        .query(
+          `select *  
+         from GYM_SLOT_DETAILS_HISTORY 
+         where attendance IS NULL AND start_time=@start_time AND start_date=@start_date AND Location=@Location`
+        );
+      const result4 = waitingList.recordset;
+
       res.status(200).json({
-        waiting: totalSlots,
+        waiting: { totalSlots, result4 },
         arrived: presentCount,
         present: result3.recordset,
       });
