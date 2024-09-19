@@ -1170,7 +1170,12 @@ module.exports = {
         .input("Location", sql.VarChar, Location)
         .input("start_date", sql.Date, start_date)
         .query(
-          "SELECT start_time FROM GYM_SCHEDULING_MASTER WHERE Location = @Location AND start_date = @start_date ORDER BY ID ASC"
+          `SELECT start_time, 
+            CONVERT(TIME, start_time, 100) AS ConvertedTime 
+     FROM GYM_SCHEDULING_MASTER 
+     WHERE Location = @Location 
+     AND start_date = @start_date 
+     ORDER BY ConvertedTime ASC`
         );
 
       if (result.recordset.length === 0) {
