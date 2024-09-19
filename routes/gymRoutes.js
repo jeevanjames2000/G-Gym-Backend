@@ -26,5 +26,10 @@ router.post(
 );
 
 router.post("/updateGymSchedule", gym_master_Controller.updateGymSchedule);
+router.get(
+  "/getStarttimeByLoc/:Location/:start_date",
+  gym_master_Controller.getStarttimeByLoc
+);
+router.get("/getLocations/:start_date", gym_master_Controller.getLocations);
 
 module.exports = router;

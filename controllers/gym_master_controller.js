@@ -1158,5 +1158,60 @@ module.exports = {
     }
   },
 
+  getStarttimeByLoc: async (req, res) => {
+    const Location = req.params.Location;
+
+    const start_date = req.params.start_date;
+
+    try {
+      const pool = req.app.locals.sql;
+      const result = await pool
+        .request()
+        .input("Location", sql.VarChar, Location)
+        .input("start_date", sql.Date, start_date)
+        .query(
+          "SELECT start_time FROM GYM_SCHEDULING_MASTER WHERE Location = @Location AND start_date = @start_date ORDER BY ID ASC"
+        );
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          message: "No gym schedules found for the specified location and date",
+        });
+      }
+      const startTimes = result.recordset.map((record) => record.start_time);
+
+      res.status(200).json(startTimes);
+    } catch (err) {
+      console.error("Error fetching gym schedules by location and date:", err);
+      res.status(500).json({ error: "Failed to fetch gym schedules" });
+    }
+  },
+
+  getLocations: async (req, res) => {
+    const start_date = req.params.start_date;
+
+    try {
+      const pool = req.app.locals.sql;
+      const result = await pool
+        .request()
+        .input("start_date", sql.Date, start_date)
+        .query(
+          "SELECT DISTINCT Location FROM GYM_SCHEDULING_MASTER WHERE start_date = @start_date"
+        );
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          message: "No gym schedules found for the specified location and date",
+        });
+      }
+      const locations = result.recordset.map((record) => record.Location);
+
+      res.status(200).json(locations);
+    } catch (err) {
+      console.error("Error fetching gym schedules by location and date:", err);
+      res.status(500).json({ error: "Failed to fetch gym schedules" });
+    }
+  },
+
   // SQL Syntax
 };
