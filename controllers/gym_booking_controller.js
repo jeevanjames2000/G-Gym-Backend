@@ -696,6 +696,19 @@ module.exports = {
         .query(totalSlotsQuery);
       const totalSlots = totalSlotsResult.recordset[0].total_slots;
 
+      const totalWaitingQuery = `
+      SELECT regdNo,start_date,start_time,end_time,Location,attendance,status
+      FROM GYM_SLOT_DETAILS 
+      WHERE start_time=@start_time AND start_date=@start_date AND Location=@Location
+    `;
+      const totalWaitResult = await pool
+        .request()
+        .input("start_time", sql.VarChar(100), start_time)
+        .input("start_date", sql.Date, start_date)
+        .input("Location", sql.VarChar(20), Location)
+        .query(totalWaitingQuery);
+      const totalWaiting = totalWaitResult.recordset;
+
       const presentCountQuery = `
       SELECT COUNT(*) AS present_count
       FROM GYM_SLOT_DETAILS_HISTORY 
@@ -720,6 +733,8 @@ module.exports = {
          where attendance='Present' AND start_time=@start_time AND start_date=@start_date AND Location=@Location`
         );
 
+      const totalPresent = result3.recordset;
+
       const waitingList = await pool
         .request()
         .input("start_time", sql.VarChar(100), start_time)
@@ -728,14 +743,14 @@ module.exports = {
         .query(
           `select *  
          from GYM_SLOT_DETAILS_HISTORY 
-         where attendance IS NULL AND start_time=@start_time AND start_date=@start_date AND Location=@Location`
+         where attendance='Absent'  AND start_time=@start_time AND start_date=@start_date AND Location=@Location`
         );
       const result4 = waitingList.recordset;
 
       res.status(200).json({
-        waiting: { totalSlots, result4 },
-        arrived: presentCount,
-        present: result3.recordset,
+        waiting: { totalSlots, totalWaiting },
+        arrived: { presentCount, totalPresent },
+        absent: result4,
       });
     } catch (error) {
       console.error("Error fetching slot counts:", error);
