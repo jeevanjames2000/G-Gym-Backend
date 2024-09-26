@@ -1003,9 +1003,9 @@ module.exports = {
   },
 
   updateGymSchedule: async (req, res) => {
-    const { regdNo, start_time, start_date, masterID } = req.body;
+    const { regdNo, start_time, start_date, masterID, admin_id } = req.body;
 
-    if (!regdNo || !start_time || !start_date || !masterID) {
+    if (!regdNo || !start_time || !start_date || !masterID || !admin_id) {
       return res.status(400).json("Missing required parameters");
     }
 
@@ -1105,6 +1105,8 @@ module.exports = {
         .input("start_time", sql.VarChar(100), start_time)
         .input("start_date", sql.Date, start_date)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .input("admin_id", sql.VarChar(100), admin_id)
+
         .query(updateQuery);
 
       if (updateResult.rowsAffected[0] === 0) {
@@ -1114,7 +1116,7 @@ module.exports = {
 
       const updateHistoryQuery = `
       UPDATE GYM_SLOT_DETAILS_HISTORY
-      SET attendance = 'Present', status = 'booked'
+      SET attendance = 'Present', status = 'booked',admin_id=@admin_id
       WHERE masterID = @masterID AND regdNo = @regdNo AND start_time = @start_time AND start_date = @start_date;
     `;
 
@@ -1124,6 +1126,7 @@ module.exports = {
         .input("start_time", sql.VarChar(100), start_time)
         .input("start_date", sql.Date, start_date)
         .input("masterID", sql.VarChar(sql.MAX), masterID)
+        .input("admin_id", sql.VarChar(100), admin_id)
         .query(updateHistoryQuery);
 
       await transaction
