@@ -11,7 +11,8 @@ const formatDate = (date) => {
 module.exports = {
   // insert slots automatically for how many days you want to add
   insertSlots: async function (req, res) {
-    const { numDays, count } = req.params;
+    const { date, numofDays } = req.params;
+
     try {
       const data = [
         {
@@ -66,6 +67,44 @@ module.exports = {
           Access_type: "All",
           Location: "GYM",
           ID: 58,
+          occupied: 0,
+          campus: "VSP",
+          available: 25,
+          Maintanence: false,
+        },
+        {
+          Gym_sheduling_id: "V10",
+          start_date: "2024-09-12T00:00:00.000Z",
+          start_time: "12:00 PM",
+          end_time: "1:00 PM",
+          end_date: "2024-09-12T00:00:00.000Z",
+          generated_date: "2024-09-12T00:00:00.000Z",
+          max_count: 45,
+          generated_by: "Cats",
+          status: "A",
+          generated_time: "2024-08-20T09:49:30.250Z",
+          Access_type: "All",
+          Location: "GYM",
+          ID: 65,
+          occupied: 0,
+          campus: "VSP",
+          available: 25,
+          Maintanence: false,
+        },
+        {
+          Gym_sheduling_id: "V11",
+          start_date: "2024-09-12T00:00:00.000Z",
+          start_time: "2:00 PM",
+          end_time: "3:00 PM",
+          end_date: "2024-09-12T00:00:00.000Z",
+          generated_date: "2024-09-12T00:00:00.000Z",
+          max_count: 45,
+          generated_by: "Cats",
+          status: "A",
+          generated_time: "2024-08-20T09:49:30.250Z",
+          Access_type: "All",
+          Location: "GYM",
+          ID: 66,
           occupied: 0,
           campus: "VSP",
           available: 25,
@@ -180,44 +219,6 @@ module.exports = {
           Access_type: "All",
           Location: "GYM",
           ID: 64,
-          occupied: 0,
-          campus: "VSP",
-          available: 25,
-          Maintanence: false,
-        },
-        {
-          Gym_sheduling_id: "V10",
-          start_date: "2024-09-12T00:00:00.000Z",
-          start_time: "12:00 PM",
-          end_time: "1:00 PM",
-          end_date: "2024-09-12T00:00:00.000Z",
-          generated_date: "2024-09-12T00:00:00.000Z",
-          max_count: 45,
-          generated_by: "Cats",
-          status: "A",
-          generated_time: "2024-08-20T09:49:30.250Z",
-          Access_type: "All",
-          Location: "GYM",
-          ID: 65,
-          occupied: 0,
-          campus: "VSP",
-          available: 25,
-          Maintanence: false,
-        },
-        {
-          Gym_sheduling_id: "V11",
-          start_date: "2024-09-12T00:00:00.000Z",
-          start_time: "2:00 PM",
-          end_time: "3:00 PM",
-          end_date: "2024-09-12T00:00:00.000Z",
-          generated_date: "2024-09-12T00:00:00.000Z",
-          max_count: 45,
-          generated_by: "Cats",
-          status: "A",
-          generated_time: "2024-08-20T09:49:30.250Z",
-          Access_type: "All",
-          Location: "GYM",
-          ID: 66,
           occupied: 0,
           campus: "VSP",
           available: 25,
@@ -776,13 +777,8 @@ module.exports = {
         },
       ];
       const pool = req.app.locals.sql;
-      const dateQuery = `
-      SELECT start_date from GYM_SCHEDULING_MASTER ORDER BY ID DESC`;
-      const result1 = await pool.request().query(dateQuery);
-      const lastDate = result1.recordset[0];
-      const lastDateFormatted = moment(lastDate.start_date).format(
-        "YYYY-MM-DD"
-      );
+      const lastDate = moment(date, "YYYY-MM-DD");
+      const lastDateFormatted = moment(lastDate).format("YYYY-MM-DD");
 
       const startDate = moment(lastDateFormatted);
 
@@ -828,14 +824,14 @@ module.exports = {
         )
       `;
 
-      for (let i = 1; i <= numDays; i++) {
-        const currentStartDate = startDate.clone().add(i, "days");
+      for (let i = 0; i <= numofDays; i++) {
+        const currentStartDate = moment(startDate).add(i, "days");
         const currentEndDate = currentStartDate.clone();
         const generatedDate = currentStartDate.clone();
         for (const record of data) {
           await pool
             .request()
-            .input("numDays", sql.Int, numDays)
+            .input("numofDays", sql.Int, numofDays)
             .input("Gym_sheduling_id", sql.VarChar(15), record.Gym_sheduling_id)
             .input(
               "start_date",
@@ -866,7 +862,9 @@ module.exports = {
 
       res
         .status(201)
-        .send("Gym scheduling records for 15 days created successfully");
+        .send(
+          `Gym scheduling records for ${numofDays} days created successfully`
+        );
     } catch (error) {
       console.error(error);
       res.status(500).send("Error inserting gym scheduling records");

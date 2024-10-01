@@ -19,6 +19,9 @@ const generateToken = (user) => {
   );
   return token;
 };
+// const verifyToken = (token) => {
+//   return jwt.decode(token, process.env.JWT_SECRET);
+// };
 
 module.exports = {
   login: async (req, res) => {
@@ -62,7 +65,6 @@ module.exports = {
 
   storeToken: async (req, res) => {
     const { mobile, hostler, gender, campus, name, regdno } = req.body;
-
     try {
       const user = { mobile, hostler, gender, campus, name, regdno };
       const token = generateToken(user);
@@ -83,7 +85,6 @@ module.exports = {
         await insertRequest.query(
           "INSERT INTO GYM_TOKEN (regdno, token) VALUES (@regdno, @token)"
         );
-
         res.json({ token: token });
       } else {
         res.json({ token: token });
