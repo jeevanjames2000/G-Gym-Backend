@@ -15,7 +15,7 @@ const generateToken = (user) => {
       campus: user.campus,
     },
     JWT_SECRET,
-    { expiresIn: "1m" }
+    { expiresIn: "6h" }
   );
   return token;
 };
