@@ -1219,5 +1219,66 @@ module.exports = {
     }
   },
 
+  getHistory: async (req, res) => {
+    const { start_date, Location, start_time } = req.params;
+
+    try {
+      const pool = req.app.locals.sql;
+      const result = await pool
+        .request()
+        .input("Location", sql.VarChar, Location)
+        .input("start_date", sql.Date, start_date)
+        .input("start_time", sql.VarChar(100), start_time)
+
+        .query(
+          "SELECT * FROM GYM_SLOT_DETAILS_HISTORY WHERE start_date = @start_date AND start_time=@start_time AND Location=@Location"
+        );
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          message: "No history found for the specified location and date",
+        });
+      }
+
+      const history = result.recordset;
+      console.log("history: ", history);
+
+      res.status(200).json(history);
+    } catch (err) {
+      console.error("Error fetching gym schedules by location and date:", err);
+      res.status(500).json({ error: "Failed to fetch gym schedules" });
+    }
+  },
+  getCancelled: async (req, res) => {
+    const { start_date, Location, start_time } = req.params;
+
+    try {
+      const pool = req.app.locals.sql;
+      const result = await pool
+        .request()
+        .input("Location", sql.VarChar, Location)
+        .input("start_date", sql.Date, start_date)
+        .input("start_time", sql.VarChar(100), start_time)
+
+        .query(
+          "SELECT * FROM GYM_SLOT_DETAILS_HISTORY WHERE status='cancelled' AND start_date = @start_date AND start_time=@start_time AND Location=@Location"
+        );
+
+      if (result.recordset.length === 0) {
+        return res.status(404).json({
+          message: "No history found for the specified location and date",
+        });
+      }
+
+      const cancelled = result.recordset;
+      console.log("history: ", cancelled);
+
+      res.status(200).json(cancelled);
+    } catch (err) {
+      console.error("Error fetching gym schedules by location and date:", err);
+      res.status(500).json({ error: "Failed to fetch gym schedules" });
+    }
+  },
+
   // SQL Syntax
 };

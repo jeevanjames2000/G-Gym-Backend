@@ -31,5 +31,13 @@ router.get(
   gym_master_Controller.getStarttimeByLoc
 );
 router.get("/getLocations/:start_date", gym_master_Controller.getLocations);
+router.get(
+  "/getHistory/:start_date?/:Location?/:start_time",
+  gym_master_Controller.getHistory
+);
+router.get(
+  "/getCancelled/:start_date?/:Location?/:start_time",
+  gym_master_Controller.getCancelled
+);
 
 module.exports = router;
