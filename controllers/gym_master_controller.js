@@ -1280,5 +1280,50 @@ module.exports = {
     }
   },
 
-  // SQL Syntax
+  insertExpoToken: async (req, res) => {
+    const { Expo_token, regdno } = req.body;
+
+    if (!Expo_token || !regdno) {
+      return res
+        .status(400)
+        .json({ error: "Token and registration number are required" });
+    }
+
+    try {
+      const pool = req.app.locals.sql;
+
+      const checkResult = await pool
+        .request()
+        .input("regdno", sql.VarChar(sql.MAX), regdno)
+        .query("SELECT * FROM GYM_TOKEN WHERE regdno = @regdno");
+      console.log("checkResult: ", checkResult);
+
+      if (checkResult.recordset.length > 0) {
+        await pool
+          .request()
+          .input("Expo_token", sql.VarChar(sql.MAX), Expo_token)
+          .input("regdno", sql.VarChar(sql.MAX), regdno)
+          .query(
+            "UPDATE GYM_TOKEN SET Expo_token = @Expo_token WHERE regdno = @regdno"
+          );
+
+        return res.status(200).json({ message: "Token updated successfully" });
+      } else {
+        await pool
+          .request()
+          .input("Expo_token", sql.VarChar(sql.MAX), Expo_token)
+          .input("regdno", sql.VarChar(sql.MAX), regdno)
+          .query(
+            "INSERT INTO GYM_TOKEN (Expo_token, regdno) VALUES (@Expo_token, @regdno)"
+          );
+
+        return res.status(200).json({ message: "Token inserted successfully" });
+      }
+    } catch (error) {
+      console.error("Error inserting/updating token:", error);
+      return res
+        .status(500)
+        .json({ error: "Failed to insert or update token" });
+    }
+  },
 };

@@ -39,5 +39,5 @@ router.get(
   "/getCancelled/:start_date?/:Location?/:start_time",
   gym_master_Controller.getCancelled
 );
-
+router.post("/insertExpoToken", gym_master_Controller.insertExpoToken);
 module.exports = router;
