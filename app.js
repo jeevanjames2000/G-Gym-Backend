@@ -8,8 +8,15 @@ const app = express();
 const port = process.env.PORT;
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./utils/swagger");
+const compress = require("compression");
 
 app.use(cors());
+app.use(
+  compress({
+    level: 6,
+    threshold: 0,
+  })
+);
 
 // sql server connections
 const sqlConfig = {
